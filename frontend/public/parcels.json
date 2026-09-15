@@ -1,0 +1,109 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567890ABCD",
+        "ownerName": "Rajesh Kumar",
+        "khasraNumber": "45/2",
+        "zoneType": "Commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[77.457136, 12.900901], [77.457131, 12.900839], [77.458491, 12.899207], [77.458457, 12.899636], [77.457502, 12.900901], [77.457136, 12.900901]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567891ABCE",
+        "ownerName": "Priya Sharma",
+        "khasraNumber": "12/1",
+        "zoneType": "Residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.45722, 30.207593], [74.45722, 30.20701], [74.458529, 30.20701], [74.458529, 30.207593], [74.45722, 30.207593]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567892ABCF",
+        "ownerName": "Amit Patel",
+        "khasraNumber": "12/2",
+        "zoneType": "Residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.45722, 30.208142], [74.45722, 30.207593], [74.45853, 30.207593], [74.45853, 30.208142], [74.45722, 30.208142]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567893ABCG",
+        "ownerName": "Sunita Rao",
+        "khasraNumber": "14/1",
+        "zoneType": "Commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.455068, 30.209797], [74.455068, 30.207016], [74.455777, 30.207016], [74.455777, 30.209797], [74.455068, 30.209797]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567894ABCH",
+        "ownerName": "Vikram Singh",
+        "khasraNumber": "14/2",
+        "zoneType": "Residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.455777, 30.208699], [74.455777, 30.207015], [74.45722, 30.207015], [74.45722, 30.208699], [74.455777, 30.208699]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567895ABCI",
+        "ownerName": "Ananya Gupta",
+        "khasraNumber": "14/3",
+        "zoneType": "Mixed Use"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.455777, 30.209797], [74.455777, 30.208699], [74.45722, 30.208699], [74.45722, 30.209797], [74.455777, 30.209797]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567896ABCJ",
+        "ownerName": "Rohan Verma",
+        "khasraNumber": "15/1",
+        "zoneType": "Commercial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.45722, 30.209797], [74.45722, 30.209256], [74.458534, 30.209256], [74.458534, 30.209797], [74.45722, 30.209797]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "ulpin": "1234567897ABCK",
+        "ownerName": "Meenakshi Iyer",
+        "khasraNumber": "15/2",
+        "zoneType": "Residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[74.45722, 30.209256], [74.45722, 30.208142], [74.458526, 30.208142], [74.458526, 30.209256], [74.45722, 30.209256]]]
+      }
+    }
+  ]
+}
