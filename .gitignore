@@ -5,6 +5,14 @@ node_modules/
 # Python virtual environment
 venv/
 **/venv/
+.venv/
+**/.venv/
+venv_linux/
+**/venv_linux/
+env/
+**/env/
+ENV/
+**/ENV/
 __pycache__/
 **/__pycache__/
 *.py[cod]

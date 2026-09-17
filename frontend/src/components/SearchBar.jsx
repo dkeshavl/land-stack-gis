@@ -9,7 +9,9 @@ import { useState, useEffect, useRef } from "react";
  * - availableParcels: Array (Optional GeoJSON features or parcel objects)
  * - placeholder: string (Optional)
  */
-function SearchBar({ onSelectParcel, availableParcels = [], placeholder = "Search by 14-digit ULPIN or Owner Name..." }) {
+const DEFAULT_EMPTY_PARCELS = [];
+
+function SearchBar({ onSelectParcel, availableParcels = DEFAULT_EMPTY_PARCELS, placeholder = "Search by 14-digit ULPIN or Owner Name..." }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);

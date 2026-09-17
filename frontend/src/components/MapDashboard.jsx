@@ -48,6 +48,21 @@ function MapViewController({ selectedUlpIn, geoJsonRef, geoData, isInitialFitDon
     }
   }, [geoData, map, geoJsonRef, isInitialFitDone, setIsInitialFitDone]);
 
+  // Ensure map recalculates container dimensions on mount or resize
+  useEffect(() => {
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+    window.addEventListener("resize", handleResize);
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timer);
+    };
+  }, [map]);
+
   // Fly to selected parcel when selectedUlpIn changes
   useEffect(() => {
     if (!selectedUlpIn || !geoJsonRef.current) return;
@@ -57,7 +72,13 @@ function MapViewController({ selectedUlpIn, geoJsonRef, geoData, isInitialFitDon
         if (layer.getBounds && typeof layer.getBounds === "function") {
           const bounds = layer.getBounds();
           if (bounds.isValid()) {
-            map.flyToBounds(bounds, { maxZoom: 18, duration: 0.9, padding: [60, 60] });
+            const isMobile = window.innerWidth < 768;
+            map.flyToBounds(bounds, {
+              maxZoom: 18,
+              duration: 0.9,
+              paddingTopLeft: [40, 40],
+              paddingBottomRight: isMobile ? [40, 240] : [40, 40]
+            });
           }
         }
       }
@@ -148,25 +169,25 @@ function MapDashboard({ selectedUlpIn, onParcelSelect }) {
   return (
     <div className="relative h-full w-full">
       {/* 3-Option Basemap Control Panel in Top-Right Corner */}
-      <div className="absolute top-4 right-4 z-[1000] flex items-center rounded-xl border border-slate-200/90 bg-white/95 p-1 shadow-lg backdrop-blur-md transition hover:shadow-xl">
-        <span className="hidden sm:inline-block px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-[1000] flex items-center rounded-xl border border-slate-200/90 bg-white/95 p-0.5 sm:p-1 shadow-lg backdrop-blur-md transition hover:shadow-xl">
+        <span className="hidden md:inline-block px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Basemap
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           {/* 1. Streets (OpenStreetMap) */}
           <button
             type="button"
             id="basemap-streets-btn"
             onClick={() => setBaseMap("streets")}
             title="OpenStreetMap Standard (Street View)"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
               baseMap === "streets"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
             <span>Streets</span>
@@ -178,13 +199,13 @@ function MapDashboard({ selectedUlpIn, onParcelSelect }) {
             id="basemap-satellite-btn"
             onClick={() => setBaseMap("satellite")}
             title="Esri World Imagery (High-Resolution Satellite)"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
               baseMap === "satellite"
                 ? "bg-slate-900 text-white shadow-sm ring-1 ring-slate-800"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>Satellite</span>
@@ -196,13 +217,13 @@ function MapDashboard({ selectedUlpIn, onParcelSelect }) {
             id="basemap-topographic-btn"
             onClick={() => setBaseMap("topographic")}
             title="OpenTopoMap (Topography & Contours)"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
               baseMap === "topographic"
                 ? "bg-emerald-700 text-white shadow-sm ring-1 ring-emerald-600"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             <span>Topo</span>
