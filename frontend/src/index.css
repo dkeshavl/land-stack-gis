@@ -2,24 +2,188 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; margin: 0; }
-body { font-family: Arial, sans-serif; background: #f1f5f9; }
+html, body, #root { 
+  height: 100%; 
+  margin: 0; 
+  padding: 0;
+}
 
-/* Prevent any square or rectangular browser focus rings or bounding boxes on Leaflet vector paths */
+:root {
+  /* Enterprise Government DPI Light Mode Tokens */
+  --surface-base: #f1f5f9;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-card: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --gov-primary: #1e3c63;
+  --gov-primary-hover: #162e4c;
+  --gov-success: #047857;
+  --gov-warning: #d97706;
+  --gov-danger: #dc2626;
+}
+
+.dark {
+  /* Enterprise Government DPI Dark Mode Tokens */
+  --surface-base: #080d16;
+  --surface-raised: #0f172a;
+  --surface-overlay: #131d31;
+  --surface-card: #111a2e;
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --gov-primary: #366199;
+  --gov-primary-hover: #5780b3;
+  --gov-success: #10b981;
+  --gov-warning: #f59e0b;
+  --gov-danger: #ef4444;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   100% Free Basemap - CSS Theme Filters
+   SIH Problem Statement 26014 — Preserves 60 FPS Leaflet Canvas Engine
+   ========================================================================== */
+.dark-map-tiles {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%);
+}
+
+.dark-map-tiles img,
+.dark-map-tiles .leaflet-tile,
+.leaflet-container.dark-map-tiles .leaflet-tile-pane,
+.leaflet-container .leaflet-tile-pane .dark-map-tiles,
+.dark-map-filter {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%) !important;
+}
+
+.dark-map-filter .leaflet-tile,
+.leaflet-container.dark-map-filter .leaflet-tile-pane,
+.dark .leaflet-container .leaflet-tile-pane .dark-map-filter {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%) !important;
+}
+
+.light-map-tiles {
+  filter: grayscale(10%) contrast(100%);
+}
+
+.light-map-tiles img,
+.light-map-tiles .leaflet-tile,
+.leaflet-container .leaflet-tile-pane .light-map-tiles {
+  filter: grayscale(10%) contrast(100%) !important;
+}
+
+/* CRITICAL: Vector overlay protection
+   Ensure custom cadastral polygons (rendered via Leaflet Canvas)
+   and markers/tooltips are NEVER affected by the tile inversion matrix. */
+.leaflet-overlay-pane,
+.leaflet-overlay-pane canvas,
+.leaflet-overlay-pane svg,
+.leaflet-marker-pane,
+.leaflet-popup-pane,
+.leaflet-tooltip-pane {
+  filter: none !important;
+}
+
+/* Prevent flash during tile load */
+.dark .leaflet-container {
+  background-color: #050505 !important;
+}
+
+.leaflet-container {
+  background-color: #ffffff !important;
+}
+
+/* Leaflet vector path interactive feedback */
 path.leaflet-interactive,
 .leaflet-interactive,
 .leaflet-container svg path {
   outline: none !important;
   -webkit-tap-highlight-color: transparent;
+  cursor: pointer !important;
 }
 
 path.leaflet-interactive:focus,
 path.leaflet-interactive:focus-visible,
 .leaflet-interactive:focus {
-  outline: none !important;
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
 }
 
-/* Hide scrollbars across Chrome, Safari, Edge, Firefox while preserving smooth scrolling */
+/* Accessible animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Cadastral Parcel Hover/Active Tooltip */
+.custom-gis-tooltip {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 6px !important;
+  padding: 3px 7px !important;
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  letter-spacing: 0.04em !important;
+}
+
+.custom-gis-tooltip::before {
+  border-top-color: #0f172a !important;
+}
+
+/* Clean accessible scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.9);
+}
+
+/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
@@ -30,13 +194,12 @@ path.leaflet-interactive:focus-visible,
   scrollbar-width: none !important;
 }
 
-/* Global scrollbar hiding */
-*::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-* {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
+/* Respect user's reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

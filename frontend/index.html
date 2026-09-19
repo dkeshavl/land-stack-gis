@@ -3,10 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Enterprise DPI Metadata — Smart India Hackathon PS 26014 -->
+    <title>Land Stack GIS | Unified Land Governance DPI</title>
+    <meta name="description" content="Land Stack GIS — Integrated Digital Public Infrastructure (DPI) for cadastral land governance, Record of Rights (RoR) verification, non-encumbrance validation, and Title Mutation. Ministry of Rural Development." />
+    <meta name="theme-color" content="#0d254c" />
+    <meta name="color-scheme" content="light dark" />
+    
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="Land Stack GIS | Unified Land Governance DPI" />
+    <meta property="og:description" content="High-performance cadastral GIS platform powered by Leaflet Canvas engine and PostGIS spatial registry for Smart India Hackathon PS 26014." />
+    <meta property="og:type" content="website" />
+    
+    <!-- Enterprise Typography (Plus Jakarta Sans & JetBrains Mono) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("land-stack-theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (saved === "dark" || (!saved && prefersDark)) {
+            document.documentElement.classList.add("dark");
+            document.documentElement.setAttribute("data-theme", "dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+            document.documentElement.setAttribute("data-theme", "light");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body>
+  <body class="antialiased selection:bg-blue-600 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

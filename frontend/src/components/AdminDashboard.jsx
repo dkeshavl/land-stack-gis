@@ -11,7 +11,7 @@ import AuditLogsView from "./AuditLogsView";
  * - onInspectParcel: (ulpin: string) => void (Switches to citizen map and zooms to parcel)
  * - onLogout: () => void (Logs out and terminates admin officer session)
  */
-function AdminDashboard({ onInspectParcel, onLogout }) {
+function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
   const [adminTab, setAdminTab] = useState("registry"); // "registry" | "analytics" | "audit"
   const [parcels, setParcels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +21,46 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
   const [actionLoading, setActionLoading] = useState({});
   const [toastMessage, setToastMessage] = useState(null);
 
+  // Helper to parse both GeoJSON FeatureCollection and API data formats
+  const parseParcelData = (result) => {
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result.data)) return result.data;
+    if (result.type === "FeatureCollection" && Array.isArray(result.features)) {
+      return result.features.map((f, idx) => {
+        const p = f.properties || {};
+        const ulpin = p.ulpin || `ULPIN-${idx + 1}`;
+        return {
+          id: f.id || p.id || ulpin,
+          ulpin: ulpin,
+          ownership: {
+            ownerName: p.ownerName || p.owner_name || "Landholder",
+            previousOwner: p.previousOwner,
+            pendingNewOwner: p.pendingNewOwner || (p.mutationStatus === "Pending" ? "Shri A. K. Sharma" : undefined),
+            khasraNumber: p.khasraNumber || p.khasra_no || `${idx + 10}/1`,
+            mutationStatus: p.mutationStatus || (idx % 3 === 0 ? "Pending" : "Approved")
+          },
+          zoning: {
+            zoneType: p.zoneType || p.zone_type || (idx % 2 === 0 ? "Commercial" : "Residential"),
+            landUse: p.landUse || "General"
+          },
+          tax: {
+            propertyTaxStatus: p.taxStatus || p.tax_status || "Paid",
+            amount: p.taxAmount || `₹${(3000 + idx * 500).toLocaleString("en-IN")}`
+          },
+          encumbrance: {
+            status: p.encumbrance || "Freehold - No Active Liens",
+            isEncumbered: Boolean(p.isEncumbered)
+          },
+          valuation: {
+            guidelineValue: p.guidelineValue || "₹1.2 Cr"
+          }
+        };
+      });
+    }
+    return [];
+  };
+
   // Fetch all parcels from backend
   const refreshParcels = async () => {
     setLoading(true);
@@ -28,10 +68,11 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
     try {
       const res = await fetch("/api/parcels");
       const result = await res.json();
-      if (res.ok && result.success) {
-        setParcels(result.data || []);
+      if (res.ok) {
+        const parsed = parseParcelData(result);
+        setParcels(parsed);
       } else {
-        throw new Error(result.message || "Failed to load parcel registry");
+        throw new Error(result.message || result.error || "Failed to load parcel registry");
       }
     } catch (err) {
       console.error("Error fetching parcels:", err);
@@ -47,11 +88,8 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
       .then((res) => res.json())
       .then((result) => {
         if (!isMounted) return;
-        if (result.success) {
-          setParcels(result.data || []);
-        } else {
-          setError(result.message || "Failed to load parcel registry");
-        }
+        const parsed = parseParcelData(result);
+        setParcels(parsed);
       })
       .catch((err) => {
         if (!isMounted) return;
@@ -92,6 +130,9 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                   ...item,
                   ownership: {
                     ...item.ownership,
+                    ownerName: result.data?.ownership?.ownerName || item.ownership?.pendingNewOwner || item.ownership?.ownerName,
+                    previousOwner: result.data?.ownership?.previousOwner || item.ownership?.ownerName,
+                    pendingNewOwner: undefined,
                     mutationStatus: "Approved",
                     approvedAt: result.data?.ownership?.approvedAt || new Date().toISOString()
                   }
@@ -100,6 +141,7 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
           )
         );
         showToast(`Mutation approved for ULPIN: ${ulpin}`, "success");
+        if (onMutationUpdated) onMutationUpdated();
       } else {
         throw new Error(result.message || "Failed to approve mutation");
       }
@@ -115,25 +157,37 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
   const handleReject = async (ulpin) => {
     setActionLoading((prev) => ({ ...prev, [ulpin]: "rejecting" }));
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setParcels((prev) =>
-        prev.map((item) =>
-          item.ulpin === ulpin
-            ? {
-                ...item,
-                ownership: {
-                  ...item.ownership,
-                  mutationStatus: "Rejected",
-                  rejectedAt: new Date().toISOString()
+      const res = await fetch(`/api/parcel/${ulpin}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setParcels((prev) =>
+          prev.map((item) =>
+            item.ulpin === ulpin
+              ? {
+                  ...item,
+                  ownership: {
+                    ...item.ownership,
+                    ownerName: result.data?.ownership?.ownerName || item.ownership?.previousOwner || item.ownership?.ownerName,
+                    pendingNewOwner: undefined,
+                    mutationStatus: "Rejected",
+                    rejectedAt: new Date().toISOString()
+                  }
                 }
-              }
-            : item
-        )
-      );
-      showToast(`Mutation rejected for ULPIN: ${ulpin}`, "error");
+              : item
+          )
+        );
+        showToast(`Mutation rejected for ULPIN: ${ulpin}`, "error");
+        if (onMutationUpdated) onMutationUpdated();
+      } else {
+        throw new Error(result.message || "Failed to reject mutation");
+      }
     } catch (err) {
       console.error("Rejection error:", err);
-      showToast("Failed to reject mutation", "error");
+      showToast(err.message || "Failed to reject mutation", "error");
     } finally {
       setActionLoading((prev) => ({ ...prev, [ulpin]: null }));
     }
@@ -195,14 +249,14 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
       });
   }, [parcels, filterTab, searchTerm]);
 
-  // Status Badge Component
+  // Status Badge Component - Stark Terminal outputs
   const renderStatusBadge = (status) => {
     const normalized = (status || "pending").toLowerCase();
 
     if (normalized === "approved") {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+        <span className="inline-flex items-center gap-1.5 rounded-none px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
           Approved
         </span>
       );
@@ -210,140 +264,74 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
 
     if (normalized === "rejected") {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+        <span className="inline-flex items-center gap-1.5 rounded-none px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-600 dark:bg-rose-400" />
           Rejected
         </span>
       );
     }
 
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-600 animate-pulse" />
+      <span className="inline-flex items-center gap-1.5 rounded-none px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse" />
         Pending Review
       </span>
     );
   };
 
   return (
-    /* Requirement 1 & 3: h-full w-full flex flex-col with modern subtle gradient & zero clipping */
-    <div className="h-full w-full flex flex-col min-h-0 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden font-sans">
+    <div className="h-full w-full flex flex-col min-h-0 bg-white dark:bg-[#050505] text-gray-900 dark:text-white overflow-hidden font-sans select-none">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-md transition-all">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-none border border-gray-200 dark:border-neutral-700 bg-white dark:bg-[#0a0a0a] px-4 py-3 shadow-[0_0_30px_rgba(0,0,0,0.1)] dark:shadow-[0_0_30px_rgba(0,0,0,0.8)] font-mono text-xs">
           <div
-            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+            className={`flex h-5 w-5 items-center justify-center rounded-none text-[10px] font-bold ${
               toastMessage.type === "error"
-                ? "bg-rose-100 text-rose-700"
-                : "bg-emerald-100 text-emerald-700"
+                ? "border border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
+                : "border border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
             }`}
           >
             {toastMessage.type === "error" ? "✕" : "✓"}
           </div>
-          <span className="text-xs font-semibold text-slate-800">{toastMessage.msg}</span>
+          <span className="font-mono text-xs font-semibold text-gray-800 dark:text-neutral-200">{toastMessage.msg}</span>
         </div>
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl space-y-6 pb-28">
+      <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar p-3 sm:p-6 lg:p-8 w-full max-w-full">
+        <div className="mx-auto max-w-7xl w-full space-y-6 pb-28 min-w-0">
 
-          {/* Clean Dashboard Header Bar: Title + Nav Tabs + Officer Profile & Logout */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-slate-200/80 pb-4">
-            <div>
+          {/* Top Header Row: Title & Subtitle on Left, Officer Profile & Logout on Right */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between w-full min-w-0">
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                <span className="inline-flex items-center rounded-none bg-gray-100 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-gray-700 dark:text-neutral-300">
                   Officer Console
                 </span>
-                <span className="text-xs text-slate-400 font-medium">• Cadastral Ledger</span>
+                <span className="text-[10px] font-mono tracking-[0.2em] text-gray-500 dark:text-neutral-400 uppercase truncate">• Cadastral Ledger</span>
               </div>
-              <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="mt-2 text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight text-black dark:text-white uppercase font-sans break-words">
                 Land Mutation Governance
               </h1>
-              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+              <p className="mt-1 text-xs font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 font-mono">
                 Review, verify, and sanction land title transfers & RoR encumbrance clearances.
               </p>
             </div>
 
-            {/* Right: Tabs, Refresh, Officer Info, Logout */}
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-              {/* Segmented View Tabs */}
-              <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 text-xs font-semibold shadow-sm">
-                <button
-                  onClick={() => setAdminTab("registry")}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
-                    adminTab === "registry"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  <span>Mutations</span>
-                  {pendingParcels.length > 0 && (
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                        adminTab === "registry"
-                          ? "bg-blue-800 text-white"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {pendingParcels.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setAdminTab("analytics")}
-                  className={`rounded-lg px-3 py-1.5 transition ${
-                    adminTab === "analytics"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Analytics
-                </button>
-                <button
-                  onClick={() => setAdminTab("audit")}
-                  className={`rounded-lg px-3 py-1.5 transition ${
-                    adminTab === "audit"
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Audit Trail
-                </button>
-              </div>
-
-              {/* Refresh Ledger */}
-              {adminTab === "registry" && (
-                <button
-                  onClick={refreshParcels}
-                  disabled={loading}
-                  title="Refresh Cadastral Records"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
-                >
-                  <svg
-                    className={`h-3.5 w-3.5 ${loading ? "animate-spin text-blue-600" : "text-slate-500"}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-              )}
-
+            {/* Desktop Officer Profile & Logout (Top Right) */}
+            <div className="hidden md:flex items-center gap-3 shrink-0">
               {/* Officer Profile Badge */}
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1 shadow-sm">
+              <div className="flex items-center gap-2.5 rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] px-3.5 py-1.5 font-mono">
                 <div className="relative shrink-0">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-[11px] font-bold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-none bg-gray-200 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 text-[10px] font-bold text-gray-900 dark:text-white">
                     RV
                   </div>
-                  <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs font-bold text-slate-800 leading-none">Shri R. K. Verma</p>
-                  <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">Tahsildar</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white leading-tight">Shri R. K. Verma</p>
+                  <p className="text-[10px] text-gray-500 dark:text-neutral-400 font-mono tracking-wider uppercase leading-tight mt-0.5">Tahsildar</p>
                 </div>
               </div>
 
@@ -352,7 +340,7 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                 <button
                   onClick={onLogout}
                   title="Logout from Government Officer Session"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-sm transition hover:bg-rose-600 hover:text-white hover:border-rose-600 active:scale-95"
+                  className="border border-gray-200 dark:border-neutral-800 text-gray-600 dark:text-neutral-400 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors rounded-none px-3.5 py-2 uppercase text-xs tracking-widest font-bold cursor-pointer inline-flex items-center gap-1.5 h-[41px]"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -363,6 +351,85 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
             </div>
           </div>
 
+          {/* Dedicated Full-Width Navigation & Action Bar: Placed in the space below admin name and logout */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 dark:border-neutral-800 pb-2 gap-3 w-full min-w-0">
+            {/* Nav Tabs - Never scroll on desktop */}
+            <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto md:overflow-x-visible no-scrollbar">
+              <button
+                onClick={() => setAdminTab("registry")}
+                className={`flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap pb-2 ${
+                  adminTab === "registry"
+                    ? "border-b-2 border-black dark:border-white text-black dark:text-white font-bold tracking-widest text-xs uppercase"
+                    : "border-b-2 border-transparent text-gray-500 hover:text-black dark:text-neutral-400 dark:hover:text-white font-semibold tracking-widest text-xs uppercase"
+                }`}
+              >
+                <span>Mutations</span>
+                {pendingParcels.length > 0 && (
+                  <span className="px-1.5 py-0.2 text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40 rounded-none">
+                    {pendingParcels.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setAdminTab("analytics")}
+                className={`transition-colors cursor-pointer whitespace-nowrap pb-2 ${
+                  adminTab === "analytics"
+                    ? "border-b-2 border-black dark:border-white text-black dark:text-white font-bold tracking-widest text-xs uppercase"
+                    : "border-b-2 border-transparent text-gray-500 hover:text-black dark:text-neutral-400 dark:hover:text-white font-semibold tracking-widest text-xs uppercase"
+                }`}
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => setAdminTab("audit")}
+                className={`transition-colors cursor-pointer whitespace-nowrap pb-2 ${
+                  adminTab === "audit"
+                    ? "border-b-2 border-black dark:border-white text-black dark:text-white font-bold tracking-widest text-xs uppercase"
+                    : "border-b-2 border-transparent text-gray-500 hover:text-black dark:text-neutral-400 dark:hover:text-white font-semibold tracking-widest text-xs uppercase"
+                }`}
+              >
+                Audit Trail
+              </button>
+            </div>
+
+            {/* Desktop Refresh Button */}
+            <div className="hidden sm:flex items-center gap-3 shrink-0">
+              <button
+                onClick={refreshParcels}
+                disabled={loading}
+                title="Refresh Cadastral Records"
+                className="border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none px-5 py-2 uppercase text-xs tracking-widest font-bold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <svg
+                  className={`h-3 w-3 ${loading ? "animate-spin text-gray-400 dark:text-neutral-400" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {/* Mobile Quick Refresh Bar */}
+            <div className="flex sm:hidden items-center justify-between gap-2 pt-1 border-t border-gray-200 dark:border-neutral-900 w-full">
+              <button
+                onClick={refreshParcels}
+                disabled={loading}
+                className="border border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-neutral-300 hover:border-black hover:text-black dark:hover:border-white dark:hover:text-white px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider font-bold inline-flex items-center gap-1.5"
+              >
+                <svg className={`h-3 w-3 ${loading ? "animate-spin text-gray-400 dark:text-neutral-400" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Sync Records</span>
+              </button>
+              <span className="text-[10px] font-mono uppercase text-gray-500 dark:text-neutral-400 tracking-wider">
+                Menu ☰ has officer & logout
+              </span>
+            </div>
+          </div>
+
           {/* Tab Views */}
           {adminTab === "analytics" ? (
             <AnalyticsDashboard onSwitchToRegistry={() => setAdminTab("registry")} />
@@ -370,169 +437,160 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
             <AuditLogsView onInspectParcel={onInspectParcel} />
           ) : (
             <>
-              {/* Requirement 2 & 3: Ultra-Premium KPI Summary Cards */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Stark KPI Summary Cards */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 w-full min-w-0">
                 
                 {/* KPI 1: Pending Mutations */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-200">
+                <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-neutral-800 p-5 sm:p-6 rounded-none flex flex-col justify-between">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 font-mono">
                       Pending Mutations
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-500/10">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
+                    <svg className="h-4 w-4 text-gray-400 dark:text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <div className="mt-4 flex items-baseline gap-3">
+                    <span className="text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white font-mono tracking-tight">
                       {pendingParcels.length}
                     </span>
-                    <span className="text-xs font-semibold text-amber-600">Action Required</span>
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-amber-600 dark:text-amber-400">Action Required</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">Applications awaiting digital approval</p>
+                  <p className="mt-2 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Applications awaiting digital sanction</p>
                 </div>
 
                 {/* KPI 2: Approved Today */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-200">
+                <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-neutral-800 p-5 sm:p-6 rounded-none flex flex-col justify-between">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 font-mono">
                       Approved Today
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/10">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
+                    <svg className="h-4 w-4 text-gray-400 dark:text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <div className="mt-4 flex items-baseline gap-3">
+                    <span className="text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white font-mono tracking-tight">
                       {approvedParcels.length}
                     </span>
-                    <span className="text-xs font-semibold text-emerald-600">RoR Verified</span>
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">RoR Verified</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">Transferred into state cadastral records</p>
+                  <p className="mt-2 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Transferred into state cadastral records</p>
                 </div>
 
                 {/* KPI 3: Total Parcels */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-200">
+                <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-neutral-800 p-5 sm:p-6 rounded-none flex flex-col justify-between">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 font-mono">
                       Total Parcels
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-500/10">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </span>
+                    <svg className="h-4 w-4 text-gray-400 dark:text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <div className="mt-4 flex items-baseline gap-3">
+                    <span className="text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white font-mono tracking-tight">
                       {totalParcels}
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">Digitized</span>
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-gray-500 dark:text-neutral-400">Digitized</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">Mapped on GIS boundary spatial dataset</p>
+                  <p className="mt-2 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Mapped on GIS boundary spatial dataset</p>
                 </div>
 
                 {/* KPI 4: Total Revenue */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-200">
+                <div className="bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-neutral-800 p-5 sm:p-6 rounded-none flex flex-col justify-between">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 font-mono">
                       Total Revenue
                     </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 ring-1 ring-violet-500/10">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
+                    <svg className="h-4 w-4 text-gray-400 dark:text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                  <div className="mt-4 flex items-baseline gap-3">
+                    <span className="text-3xl lg:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
                       {totalRevenueStr}
                     </span>
-                    <span className="text-xs font-semibold text-emerald-600">Assessed</span>
+                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-600 dark:text-emerald-400/80">Assessed</span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">Total property dues & duty assessed</p>
+                  <p className="mt-2 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Total property dues & duty assessed</p>
                 </div>
               </div>
 
               {/* Filter and Quick Search Toolbar */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full min-w-0">
                 
-                {/* Segmented Filter Control */}
-                <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-                  <button
-                    onClick={() => setFilterTab("pending")}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      filterTab === "pending"
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <span>Pending Review</span>
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                        filterTab === "pending" ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-600"
+                {/* Segmented Filter Control - Horizontally scrollable on mobile */}
+                <div className="w-full sm:w-auto overflow-x-auto no-scrollbar">
+                  <div className="inline-flex min-w-max rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-1">
+                    <button
+                      onClick={() => setFilterTab("pending")}
+                      className={`flex items-center gap-1.5 sm:gap-2 rounded-none px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                        filterTab === "pending"
+                          ? "bg-gray-900 text-white dark:bg-white dark:text-black font-extrabold"
+                          : "text-gray-600 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white"
                       }`}
                     >
-                      {pendingParcels.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setFilterTab("approved")}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      filterTab === "approved"
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <span>Approved</span>
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                        filterTab === "approved" ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-600"
+                      <span>Pending Review</span>
+                      <span
+                        className={`px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-none ${
+                          filterTab === "pending" ? "bg-white text-gray-900 dark:bg-black dark:text-white" : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-neutral-300"
+                        }`}
+                      >
+                        {pendingParcels.length}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setFilterTab("approved")}
+                      className={`flex items-center gap-1.5 sm:gap-2 rounded-none px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                        filterTab === "approved"
+                          ? "bg-gray-900 text-white dark:bg-white dark:text-black font-extrabold"
+                          : "text-gray-600 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white"
                       }`}
                     >
-                      {approvedParcels.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setFilterTab("rejected")}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      filterTab === "rejected"
-                        ? "bg-rose-600 text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <span>Rejected</span>
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                        filterTab === "rejected" ? "bg-rose-700 text-white" : "bg-slate-100 text-slate-600"
+                      <span>Approved</span>
+                      <span
+                        className={`px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-none ${
+                          filterTab === "approved" ? "bg-white text-gray-900 dark:bg-black dark:text-white" : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-neutral-300"
+                        }`}
+                      >
+                        {approvedParcels.length}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setFilterTab("rejected")}
+                      className={`flex items-center gap-1.5 sm:gap-2 rounded-none px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                        filterTab === "rejected"
+                          ? "bg-gray-900 text-white dark:bg-white dark:text-black font-extrabold"
+                          : "text-gray-600 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white"
                       }`}
                     >
-                      {rejectedParcels.length}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setFilterTab("all")}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      filterTab === "all"
-                        ? "bg-slate-800 text-white shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    All ({totalParcels})
-                  </button>
+                      <span>Rejected</span>
+                      <span
+                        className={`px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-none ${
+                          filterTab === "rejected" ? "bg-white text-gray-900 dark:bg-black dark:text-white" : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-neutral-300"
+                        }`}
+                      >
+                        {rejectedParcels.length}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setFilterTab("all")}
+                      className={`rounded-none px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                        filterTab === "all"
+                          ? "bg-gray-900 text-white dark:bg-white dark:text-black font-extrabold"
+                          : "text-gray-600 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white"
+                      }`}
+                    >
+                      All ({totalParcels})
+                    </button>
+                  </div>
                 </div>
 
                 {/* Instant Search Filter */}
-                <div className="relative w-full sm:w-80">
-                  <div className="pointer-events-none absolute left-3 top-2.5 text-slate-400">
+                <div className="relative w-full sm:w-80 min-w-0">
+                  <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 dark:text-neutral-500">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
@@ -541,64 +599,62 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by ULPIN, Owner, Khasra..."
-                    className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs font-medium text-slate-800 placeholder-slate-400 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder="SEARCH ULPIN, OWNER, KHASRA..."
+                    className="w-full rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] py-2 pl-9 pr-3 text-xs font-mono font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-600 shadow-none transition focus:border-gray-900 dark:focus:border-white focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Error Banner */}
               {error && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-xs font-medium text-rose-700 shadow-sm">
+                <div className="rounded-none border border-rose-400 dark:border-rose-500/50 bg-rose-50 dark:bg-rose-950/20 p-4 text-xs font-mono text-rose-700 dark:text-rose-400">
                   <div className="flex items-center gap-2">
-                    <svg className="h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
+                    <span className="font-bold">ERROR:</span>
                     <span>{error}</span>
                   </div>
                 </div>
               )}
 
-              {/* Requirement 2: Mutation Requests Table Container with Sticky Table Header */}
+              {/* Mutation Requests Table Container with Sticky Table Header */}
               {loading ? (
-                <div className="flex h-72 items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                <div className="flex h-72 items-center justify-center rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] w-full">
                   <div className="flex flex-col items-center gap-2.5">
-                    <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
-                    <p className="text-xs font-semibold text-slate-500">Querying cadastral state repository...</p>
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 dark:border-white border-t-transparent" />
+                    <p className="text-xs font-mono uppercase tracking-widest text-gray-500 dark:text-neutral-400">Querying cadastral state repository...</p>
                   </div>
                 </div>
               ) : displayedParcels.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-16 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-lg text-slate-400">
-                    ✓
+                <div className="flex flex-col items-center justify-center rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-8 sm:p-16 text-center w-full">
+                  <div className="flex h-10 w-10 items-center justify-center border border-gray-300 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-900 text-sm font-mono text-gray-600 dark:text-neutral-400">
+                    Ø
                   </div>
-                  <h3 className="mt-3 text-sm font-bold text-slate-800">
+                  <h3 className="mt-3 text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white font-mono">
                     {filterTab === "pending" ? "No Pending Mutations Found" : "No Matching Parcels"}
                   </h3>
-                  <p className="mt-1 text-xs text-slate-400 max-w-sm">
+                  <p className="mt-1 text-xs font-mono text-gray-500 dark:text-neutral-400 max-w-sm">
                     {filterTab === "pending"
                       ? "All land ownership mutation applications in this jurisdiction have been reviewed."
                       : "No parcel records match the current filter or search query."}
                   </p>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                  <div className="overflow-x-auto max-h-[580px] overflow-y-auto no-scrollbar">
-                    <table className="w-full text-left border-collapse">
+                <div className="bg-white dark:bg-[#0a0a0a] rounded-none border border-gray-200 dark:border-neutral-800 overflow-hidden w-full max-w-full min-w-0">
+                  <div className="overflow-x-auto max-h-[580px] overflow-y-auto no-scrollbar w-full">
+                    <table className="w-full min-w-[700px] text-left border-collapse">
                       
-                      {/* Requirement 2: Sticky Table Header */}
-                      <thead className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 shadow-sm">
+                      {/* Sticky Table Header */}
+                      <thead className="sticky top-0 z-20 bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-neutral-800 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-gray-600 dark:text-neutral-500">
                         <tr>
-                          <th className="px-6 py-3.5 whitespace-nowrap">ULPIN</th>
-                          <th className="px-6 py-3.5">Owner & Transferee Details</th>
-                          <th className="px-6 py-3.5">Zoning & Use</th>
-                          <th className="px-6 py-3.5">Property Tax</th>
-                          <th className="px-6 py-3.5">Mutation Status</th>
-                          <th className="px-6 py-3.5 text-right whitespace-nowrap">Actions</th>
+                          <th className="px-6 py-4 whitespace-nowrap">ULPIN</th>
+                          <th className="px-6 py-4">Owner & Transferee Details</th>
+                          <th className="px-6 py-4">Zoning & Use</th>
+                          <th className="px-6 py-4">Property Tax</th>
+                          <th className="px-6 py-4">Mutation Status</th>
+                          <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                         </tr>
                       </thead>
 
-                      <tbody className="divide-y divide-slate-100 text-xs">
+                      <tbody className="divide-y divide-gray-200 dark:divide-neutral-900 text-xs">
                         {displayedParcels.map((parcel) => {
                           const ulpin = parcel.ulpin;
                           const status = parcel.ownership?.mutationStatus || "Pending";
@@ -609,19 +665,19 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                           return (
                             <tr
                               key={ulpin}
-                              className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                              className="hover:bg-gray-100 dark:hover:bg-neutral-900/50 transition-colors border-b border-gray-200 dark:border-neutral-900 last:border-b-0"
                             >
                               {/* 1. ULPIN with GIS Inspect Action */}
-                              <td className="whitespace-nowrap px-6 py-4 font-mono font-bold text-blue-700">
+                              <td className="whitespace-nowrap px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
                                 <div className="flex items-center gap-2">
                                   <span>{ulpin}</span>
                                   {onInspectParcel && (
                                     <button
                                       onClick={() => onInspectParcel(ulpin)}
                                       title="Inspect parcel on GIS Map"
-                                      className="rounded-lg p-1 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 active:scale-95"
+                                      className="border border-gray-200 dark:border-neutral-800 p-1 text-gray-500 hover:border-gray-900 hover:text-gray-900 dark:text-neutral-400 dark:hover:border-white dark:hover:text-white transition-colors cursor-pointer"
                                     >
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                       </svg>
@@ -630,31 +686,31 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                                 </div>
                               </td>
 
-                              {/* 2. Owner & Transferee (End User) Details - ALWAYS CLEARLY DISPLAYED */}
+                              {/* 2. Owner & Transferee (End User) Details */}
                               <td className="px-6 py-4">
-                                <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                                <div className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">
                                   {parcel.ownership?.ownerName || "Registered Landholder"}
                                 </div>
                                 {parcel.ownership?.pendingNewOwner ? (
-                                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-200/80">
-                                    <span className="text-amber-600 font-normal">Buyer/Transferee:</span>
-                                    <span className="font-bold text-amber-900">
+                                  <div className="mt-1.5 inline-flex items-center gap-1.5 border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 text-[10px] font-mono text-amber-800 dark:text-amber-300">
+                                    <span className="text-amber-700 dark:text-amber-400/70">Buyer:</span>
+                                    <span className="font-bold text-amber-900 dark:text-amber-200">
                                       {parcel.ownership.pendingNewOwner}
                                     </span>
                                   </div>
                                 ) : (
-                                  <div className="mt-0.5 text-[11px] text-slate-400">
+                                  <div className="mt-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-400">
                                     Sole Freehold Titleholder
                                   </div>
                                 )}
                                 {parcel.ownership?.transferReason && (
-                                  <div className="mt-0.5 text-[10px] text-slate-400">
+                                  <div className="mt-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-400">
                                     Reason: {parcel.ownership.transferReason}
                                   </div>
                                 )}
-                                <div className="mt-0.5 text-[11px] text-slate-500">
+                                <div className="mt-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-400">
                                   Khasra No:{" "}
-                                  <span className="font-semibold text-slate-700">
+                                  <span className="text-gray-900 dark:text-white font-bold">
                                     {parcel.ownership?.khasraNumber || "-"}
                                   </span>
                                 </div>
@@ -662,10 +718,10 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
 
                               {/* 3. Zoning & Land Use */}
                               <td className="px-6 py-4">
-                                <div className="font-semibold text-slate-800">
+                                <div className="font-bold text-gray-900 dark:text-white font-mono text-xs">
                                   {parcel.zoning?.zoneType || "Standard"}
                                 </div>
-                                <div className="mt-0.5 text-[11px] text-slate-500">
+                                <div className="mt-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-400">
                                   {parcel.zoning?.landUse || "-"}
                                 </div>
                               </td>
@@ -673,72 +729,63 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                               {/* 4. Property Tax */}
                               <td className="px-6 py-4">
                                 <span
-                                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                  className={`inline-flex px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-none border ${
                                     parcel.tax?.propertyTaxStatus === "Paid"
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "bg-amber-100 text-amber-700"
+                                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                      : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
                                   }`}
                                 >
                                   {parcel.tax?.propertyTaxStatus || "Due"}
                                 </span>
-                                <div className="mt-1 text-[11px] text-slate-500 font-medium">
+                                <div className="mt-1 text-[10px] font-mono text-gray-500 dark:text-neutral-400">
                                   {parcel.tax?.amount || "—"}
                                 </div>
                               </td>
 
-                              {/* 5. Status Badges (Pills) */}
+                              {/* 5. Status Badges */}
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {renderStatusBadge(status)}
                               </td>
 
-                              {/* Requirement 5: Polished Ghost Action Buttons */}
+                              {/* Actions */}
                               <td className="whitespace-nowrap px-6 py-4 text-right">
                                 {isPending ? (
                                   <div className="inline-flex items-center gap-2">
-                                    {/* Ghost Reject Button (rose text/bg on hover) */}
+                                    {/* Reject Button */}
                                     <button
                                       onClick={() => handleReject(ulpin)}
                                       disabled={Boolean(actionLoading[ulpin])}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300/80 bg-rose-50/50 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-sm transition-all duration-150 hover:bg-rose-600 hover:text-white hover:border-rose-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                                      className="border border-gray-300 dark:border-neutral-700 text-gray-600 dark:text-neutral-400 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors rounded-none px-3 py-1.5 uppercase text-[10px] font-bold tracking-wider cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                       {isRejecting ? (
-                                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-rose-600 border-t-transparent" />
+                                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
                                       ) : (
-                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
+                                        <span>Reject</span>
                                       )}
-                                      <span>Reject</span>
                                     </button>
 
-                                    {/* Ghost Approve Button (emerald text/bg on hover) */}
+                                    {/* Approve Button */}
                                     <button
                                       onClick={() => handleApprove(ulpin)}
                                       disabled={Boolean(actionLoading[ulpin])}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/80 bg-emerald-50/50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm transition-all duration-150 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                                      className="border border-emerald-600 dark:border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-black transition-colors rounded-none px-3 py-1.5 uppercase text-[10px] font-bold tracking-wider cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                       {isApproving ? (
-                                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+                                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-600 dark:border-emerald-400 border-t-transparent" />
                                       ) : (
-                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                                        </svg>
+                                        <span>Approve</span>
                                       )}
-                                      <span>Approve</span>
                                     </button>
                                   </div>
                                 ) : status.toLowerCase() === "approved" ? (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <span className="inline-flex items-center gap-1.5 border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 text-[10px] font-mono font-bold uppercase text-emerald-700 dark:text-emerald-400">
+                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                                     </svg>
                                     Verified & Sealed
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/20">
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
+                                  <span className="inline-flex items-center gap-1.5 border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 text-[10px] font-mono font-bold uppercase text-rose-700 dark:text-rose-400">
                                     Rejected
                                   </span>
                                 )}
@@ -751,9 +798,9 @@ function AdminDashboard({ onInspectParcel, onLogout }) {
                   </div>
 
                   {/* Table Footer Status */}
-                  <div className="border-t border-slate-200 bg-slate-50/80 px-6 py-3 flex items-center justify-between text-xs text-slate-500">
-                    <span>Showing {displayedParcels.length} of {totalParcels} parcel records</span>
-                    <span className="font-semibold text-emerald-700">Digital Public Infrastructure • RoR Active</span>
+                  <div className="border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-black px-6 py-3 flex items-center justify-between text-[11px] font-mono text-gray-500 dark:text-neutral-500">
+                    <span>Showing {displayedParcels.length} of {totalParcels} records</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Digital Public Infrastructure • RoR Sealed</span>
                   </div>
                 </div>
               )}

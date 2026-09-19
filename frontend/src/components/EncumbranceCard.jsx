@@ -1,5 +1,7 @@
+import StatusPill from "./StatusPill";
+
 /**
- * EncumbranceCard Component for Land Stack GIS
+ * EncumbranceCard Component for Land Stack GIS (SpaceX Stark Theme)
  * Displays Bank Mortgages, Legal Disputes, and Clear Title Certifications (NEC)
  *
  * Props:
@@ -8,9 +10,11 @@
 function EncumbranceCard({ encumbrance }) {
   if (!encumbrance) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="mb-2 font-bold text-slate-900">Encumbrance & Legal Status</h3>
-        <p className="text-xs text-slate-400 italic">No encumbrance records on file.</p>
+      <section className="rounded-none border border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] p-4">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+          Encumbrance & Legal Status
+        </h3>
+        <p className="text-xs text-gray-400 italic">No encumbrance records on file.</p>
       </section>
     );
   }
@@ -25,101 +29,87 @@ function EncumbranceCard({ encumbrance }) {
   const isMortgaged = mortgageDetails.isMortgaged;
   const hasDispute = legalDispute.hasDispute;
 
-  // Determine overall status badge color
+  // Determine overall status badge color with stark borders
   const getBadgeStyle = () => {
     if (hasDispute) {
       return {
-        badge: "bg-red-100 text-red-800 ring-1 ring-red-300",
-        dot: "bg-red-500",
         text: "Litigation Alert",
-        border: "border-red-200 bg-red-50/40"
+        statusLabel: "Litigation Pending",
+        border: "border-red-500/40 dark:border-red-500/40 bg-white dark:bg-[#050505]"
       };
     }
     if (isMortgaged) {
       return {
-        badge: "bg-amber-100 text-amber-800 ring-1 ring-amber-300",
-        dot: "bg-amber-500",
         text: "Bank Mortgage Active",
-        border: "border-amber-200 bg-amber-50/30"
+        statusLabel: "Active Lien",
+        border: "border-amber-500/40 dark:border-amber-500/40 bg-white dark:bg-[#050505]"
       };
     }
     return {
-      badge: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
-      dot: "bg-emerald-500",
       text: "Clear Title (Freehold)",
-      border: "border-slate-200 bg-white"
+      statusLabel: "Clear Title",
+      border: "border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505]"
     };
   };
 
   const currentTheme = getBadgeStyle();
 
   return (
-    <section className={`rounded-xl border p-4 shadow-sm transition ${currentTheme.border}`}>
+    <section className={`rounded-none border p-4 transition-colors ${currentTheme.border}`}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="flex items-start justify-between gap-2 border-b border-gray-200 dark:border-neutral-800 pb-3">
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
               Encumbrance & Legal Status
             </span>
           </div>
-          <p className="mt-0.5 text-[11px] text-slate-500">
+          <p className="mt-0.5 text-[11px] text-gray-500 dark:text-neutral-400">
             Sub-Registrar Non-Encumbrance Search (Form 15)
           </p>
         </div>
 
         {/* Primary Status Badge */}
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${currentTheme.badge}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${currentTheme.dot}`} />
-          {currentTheme.text}
-        </span>
+        <StatusPill status={currentTheme.text} size="sm" />
       </div>
 
       {/* Main Status Text */}
-      <div className="mt-3 flex items-center justify-between border-b border-slate-100 py-2.5">
-        <span className="text-xs text-slate-500">Tenure / Title Nature</span>
-        <span className="text-xs font-bold text-slate-800">{status}</span>
+      <div className="mt-3 flex items-center justify-between border-b border-gray-200 dark:border-neutral-800 py-2.5">
+        <span className="text-xs text-gray-500 dark:text-neutral-400">Tenure / Title Nature</span>
+        <span className="text-xs font-bold text-gray-900 dark:text-white">{status}</span>
       </div>
 
       {/* Bank Mortgage Section */}
-      <div className="border-b border-slate-100 py-2.5">
+      <div className="border-b border-gray-200 dark:border-neutral-800 py-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">Institutional Lien / Mortgage</span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-              isMortgaged
-                ? "bg-amber-100 text-amber-800"
-                : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {isMortgaged ? "Active Lien" : "No Lien"}
-          </span>
+          <span className="text-xs text-gray-500 dark:text-neutral-400">Institutional Lien / Mortgage</span>
+          <StatusPill status={isMortgaged ? "Active Lien" : "No Lien"} size="sm" />
         </div>
 
         {isMortgaged ? (
-          <div className="mt-2 rounded-lg bg-white/90 p-2.5 text-xs ring-1 ring-amber-200 space-y-1">
+          <div className="mt-2 rounded-none bg-gray-50 dark:bg-[#111] p-2.5 text-xs border border-gray-200 dark:border-neutral-800 space-y-1">
             <div className="flex justify-between">
-              <span className="text-slate-500">Financier:</span>
-              <span className="font-bold text-slate-900">{mortgageDetails.bankName}</span>
+              <span className="text-gray-500 dark:text-neutral-400">Financier:</span>
+              <span className="font-bold text-gray-900 dark:text-white">{mortgageDetails.bankName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Loan Reference:</span>
-              <span className="font-mono text-[11px] font-semibold text-blue-700">
+              <span className="text-gray-500 dark:text-neutral-400">Loan Reference:</span>
+              <span className="font-mono text-[11px] font-bold text-black dark:text-white">
                 {mortgageDetails.loanId}
               </span>
             </div>
             {mortgageDetails.sanctionedAmount && (
               <div className="flex justify-between">
-                <span className="text-slate-500">Lien Amount:</span>
-                <span className="font-bold text-amber-900">{mortgageDetails.sanctionedAmount}</span>
+                <span className="text-gray-500 dark:text-neutral-400">Lien Amount:</span>
+                <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
+                  {mortgageDetails.sanctionedAmount}
+                </span>
               </div>
             )}
           </div>
         ) : (
           mortgageDetails.bankName && mortgageDetails.bankName !== "None" && (
-            <p className="mt-1 text-[11px] text-slate-500 italic">
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-neutral-400 italic">
               {mortgageDetails.bankName}
             </p>
           )
@@ -127,40 +117,32 @@ function EncumbranceCard({ encumbrance }) {
       </div>
 
       {/* Legal Disputes / Litigation Section */}
-      <div className="border-b border-slate-100 py-2.5">
+      <div className="border-b border-gray-200 dark:border-neutral-800 py-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">Judicial / Dispute Status</span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-              hasDispute
-                ? "bg-red-100 text-red-800"
-                : "bg-emerald-100 text-emerald-700"
-            }`}
-          >
-            {hasDispute ? "Litigation Pending" : "Dispute Free"}
-          </span>
+          <span className="text-xs text-gray-500 dark:text-neutral-400">Judicial / Dispute Status</span>
+          <StatusPill status={hasDispute ? "Litigation Pending" : "Dispute Free"} size="sm" />
         </div>
 
         {hasDispute ? (
-          <div className="mt-2 rounded-lg bg-white/90 p-2.5 text-xs ring-1 ring-red-200 space-y-1">
+          <div className="mt-2 rounded-none bg-red-500/10 p-2.5 text-xs border border-red-500/30 space-y-1">
             <div className="flex justify-between">
-              <span className="text-slate-500">Suit Type:</span>
-              <span className="font-bold text-red-900">{legalDispute.status}</span>
+              <span className="text-gray-600 dark:text-neutral-400">Suit Type:</span>
+              <span className="font-bold text-red-700 dark:text-red-400">{legalDispute.status}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Court Case:</span>
-              <span className="font-mono text-[11px] font-semibold text-slate-800">
+              <span className="text-gray-600 dark:text-neutral-400">Court Case:</span>
+              <span className="font-mono text-[11px] font-bold text-gray-900 dark:text-white">
                 {legalDispute.courtCaseId}
               </span>
             </div>
             {legalDispute.remarks && (
-              <p className="mt-1 text-[11px] text-red-700 leading-tight">
+              <p className="mt-1 text-[11px] text-red-600 dark:text-red-400 leading-tight">
                 ⚠️ {legalDispute.remarks}
               </p>
             )}
           </div>
         ) : (
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-[11px] text-gray-500 dark:text-neutral-400">
             {legalDispute.remarks || "No pending civil or revenue court stays."}
           </p>
         )}
@@ -170,12 +152,12 @@ function EncumbranceCard({ encumbrance }) {
       <div className="pt-2.5">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-500">Digital Certificate</span>
-            <p className="font-mono text-[11px] font-bold text-blue-700">
+            <span className="text-xs text-gray-500 dark:text-neutral-400">Digital Certificate</span>
+            <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
               {certificate.necNumber || "NEC-VERIFIED"}
             </p>
           </div>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+          <span className="border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-gray-700 dark:text-neutral-300 rounded-none">
             {certificate.validity || "30-Year Clear"}
           </span>
         </div>

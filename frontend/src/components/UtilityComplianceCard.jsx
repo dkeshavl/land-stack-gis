@@ -1,5 +1,5 @@
 /**
- * UtilityComplianceCard Component for Land Stack GIS
+ * UtilityComplianceCard Component for Land Stack GIS (SpaceX Stark Theme)
  * Displays Municipal Utility Connections, Environmental Restrictions, and Circle Rate Valuations.
  *
  * Props:
@@ -9,9 +9,11 @@
 function UtilityComplianceCard({ utilities, valuation }) {
   if (!utilities && !valuation) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="mb-2 font-bold text-slate-900">Utility & Environmental Compliance</h3>
-        <p className="text-xs text-slate-400 italic">No municipal infrastructure records on file.</p>
+      <section className="rounded-none border border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] p-4">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+          Utility & Environmental Compliance
+        </h3>
+        <p className="text-xs text-gray-400 italic">No municipal infrastructure records on file.</p>
       </section>
     );
   }
@@ -31,96 +33,102 @@ function UtilityComplianceCard({ utilities, valuation }) {
     lastRevisionDate = "2026-01-01"
   } = valuation || {};
 
-  const isEcoClear = (environmental.status || "").toLowerCase().includes("compliant") ||
+  const isEcoClear =
+    (environmental.status || "").toLowerCase().includes("compliant") ||
     (environmental.status || "").toLowerCase().includes("clear");
-  const isWetlandWarning = (environmental.wetlandProximity || "").toLowerCase().includes("caution") ||
+  const isWetlandWarning =
+    (environmental.wetlandProximity || "").toLowerCase().includes("caution") ||
     (environmental.wetlandProximity || "").toLowerCase().includes("buffer");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {/* 1. Guideline Value & Circle Rate Card */}
-      <section className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-blue-100/80 pb-2.5">
+      <section className="rounded-none border border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] p-4">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-800 pb-2.5">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <span className="flex h-5 w-5 items-center justify-center border border-black dark:border-white text-black dark:text-white font-mono text-[10px] rounded-none">
+              ₹
             </span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-950">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
               Guideline Land Valuation
             </h3>
           </div>
-          <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+          <span className="border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-700 dark:text-neutral-300 rounded-none">
             Official Circle Rate
           </span>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg bg-white/80 p-2.5 shadow-xs border border-blue-50">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase">Circle Rate</span>
-            <p className="mt-0.5 font-bold text-slate-900 text-sm sm:text-base text-blue-700">{circleRate}</p>
-            <span className="text-[10px] text-slate-400">Govt Minimum Base</span>
+          <div className="rounded-none bg-gray-50 dark:bg-[#111] p-3 border border-gray-200 dark:border-neutral-800">
+            <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider">
+              Circle Rate
+            </span>
+            <p className="mt-1 font-mono font-bold text-black dark:text-white text-sm sm:text-base">
+              {circleRate}
+            </p>
+            <span className="text-[10px] font-mono text-gray-500 dark:text-neutral-500">Govt Minimum Base</span>
           </div>
 
-          <div className="rounded-lg bg-white/80 p-2.5 shadow-xs border border-blue-50">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase">Guideline Value</span>
-            <p className="mt-0.5 font-black text-slate-900 text-sm sm:text-base">{guidelineValue}</p>
-            <span className="text-[10px] text-slate-400">Area: {unitArea}</span>
+          <div className="rounded-none bg-gray-50 dark:bg-[#111] p-3 border border-gray-200 dark:border-neutral-800">
+            <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider">
+              Guideline Value
+            </span>
+            <p className="mt-1 font-mono font-bold text-black dark:text-white text-sm sm:text-base">
+              {guidelineValue}
+            </p>
+            <span className="text-[10px] font-mono text-gray-500 dark:text-neutral-500">Area: {unitArea}</span>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between text-[10px] text-slate-500">
+        <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono text-gray-500 dark:text-neutral-500">
           <span>Stamps & Registration Dept Benchmark</span>
           <span>Revised: {lastRevisionDate}</span>
         </div>
       </section>
 
       {/* 2. Utility Infrastructure Card */}
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <section className="rounded-none border border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] p-4">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-800 pb-2.5">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+            <span className="flex h-5 w-5 items-center justify-center border border-black dark:border-white text-black dark:text-white font-mono text-[10px] rounded-none">
+              ⚡
             </span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
               Utility Infrastructure
             </h3>
           </div>
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+          <span className="border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-none">
             Grid Linked
           </span>
         </div>
 
         <div className="mt-3 space-y-2.5 text-xs">
           {/* Water Supply */}
-          <div className="flex items-start justify-between gap-2 border-b border-slate-50 pb-2">
+          <div className="flex items-start justify-between gap-2 border-b border-gray-100 dark:border-neutral-800/80 pb-2">
             <div className="flex items-center gap-2">
-              <span className="text-blue-500 text-sm">💧</span>
+              <span className="text-sm">💧</span>
               <div>
-                <p className="font-semibold text-slate-800">Piped Water Supply</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Piped Water Supply</p>
                 {waterConnectionId && (
-                  <p className="text-[10px] text-slate-400 font-mono">ID: {waterConnectionId}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-neutral-400 font-mono">ID: {waterConnectionId}</p>
                 )}
               </div>
             </div>
-            <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+            <span className="border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-800 dark:text-neutral-200 rounded-none">
               {waterSupply}
             </span>
           </div>
 
           {/* Electricity Grid */}
-          <div className="flex items-start justify-between gap-2 border-b border-slate-50 pb-2">
+          <div className="flex items-start justify-between gap-2 border-b border-gray-100 dark:border-neutral-800/80 pb-2">
             <div className="flex items-center gap-2">
-              <span className="text-amber-500 text-sm">⚡</span>
+              <span className="text-sm">⚡</span>
               <div>
-                <p className="font-semibold text-slate-800">Power Grid</p>
-                <p className="text-[10px] text-slate-400">Distribution Transformer</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Power Grid</p>
+                <p className="text-[10px] text-gray-500 dark:text-neutral-400">Distribution Transformer</p>
               </div>
             </div>
-            <span className="text-right text-[11px] font-semibold text-slate-700 max-w-[170px] truncate" title={electricityGrid}>
+            <span className="text-right text-[11px] font-mono font-bold text-gray-900 dark:text-white max-w-[170px] truncate" title={electricityGrid}>
               {electricityGrid}
             </span>
           </div>
@@ -128,13 +136,13 @@ function UtilityComplianceCard({ utilities, valuation }) {
           {/* Sewage & Drainage */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-600 text-sm">🚰</span>
+              <span className="text-sm">🚰</span>
               <div>
-                <p className="font-semibold text-slate-800">Sewerage & Drainage</p>
-                <p className="text-[10px] text-slate-400">Underground Trunk Line</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Sewerage & Drainage</p>
+                <p className="text-[10px] text-gray-500 dark:text-neutral-400">Underground Trunk Line</p>
               </div>
             </div>
-            <span className="rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+            <span className="border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-800 dark:text-neutral-200 rounded-none">
               {sewageNetwork}
             </span>
           </div>
@@ -143,29 +151,27 @@ function UtilityComplianceCard({ utilities, valuation }) {
 
       {/* 3. Environmental Compliance & Hazard Card */}
       <section
-        className={`rounded-xl border p-4 shadow-sm transition ${
+        className={`rounded-none border p-4 transition-colors ${
           isWetlandWarning
-            ? "border-amber-200 bg-amber-50/40"
-            : "border-slate-200 bg-white"
+            ? "border-amber-500/40 bg-amber-500/10"
+            : "border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505]"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-800 pb-2.5">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <span className="flex h-5 w-5 items-center justify-center border border-black dark:border-white text-black dark:text-white font-mono text-[10px] rounded-none">
+              🌱
             </span>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
               Environmental Compliance
             </h3>
           </div>
 
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-none ${
               isWetlandWarning
-                ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
-                : "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300"
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
             }`}
           >
             <span
@@ -179,15 +185,15 @@ function UtilityComplianceCard({ utilities, valuation }) {
 
         <div className="mt-3 space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Eco-Sensitive Zone (ESZ):</span>
-            <span className="font-semibold text-slate-800">{environmental.ecoSensitiveZone || "Clear"}</span>
+            <span className="text-gray-500 dark:text-neutral-400">Eco-Sensitive Zone (ESZ):</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{environmental.ecoSensitiveZone || "Clear"}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Water Body / Wetland Proximity:</span>
+            <span className="text-gray-500 dark:text-neutral-400">Water Body / Wetland Proximity:</span>
             <span
               className={`font-semibold ${
-                isWetlandWarning ? "text-amber-800 font-bold" : "text-slate-800"
+                isWetlandWarning ? "text-amber-700 dark:text-amber-300 font-bold" : "text-gray-900 dark:text-white"
               }`}
             >
               {environmental.wetlandProximity || "None (Safe)"}
@@ -195,12 +201,12 @@ function UtilityComplianceCard({ utilities, valuation }) {
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Flood Hazard Vulnerability:</span>
+            <span className="text-gray-500 dark:text-neutral-400">Flood Hazard Vulnerability:</span>
             <span
-              className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
+              className={`border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider rounded-none ${
                 environmental.floodRisk === "Moderate"
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-emerald-100 text-emerald-700"
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                  : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
               }`}
             >
               {environmental.floodRisk || "Low"}

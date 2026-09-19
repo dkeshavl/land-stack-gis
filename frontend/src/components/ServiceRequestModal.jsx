@@ -1,31 +1,68 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * ServiceRequestModal Component for Land Stack GIS
- * Allows citizens to apply for Land Ownership Mutation / Title Transfer.
+ * Smart India Hackathon PS 26014 — Ministry of Rural Development
  *
- * Props:
- * - isOpen: boolean
- * - onClose: () => void
- * - initialUlpin: string | null
- * - onSuccess: (updatedParcelData: object, ulpin: string) => void
+ * Form 12-A: Multi-Step Title Mutation Application Wizard
+ * Redesigned with SpaceX / Palantir DPI Terminal Aesthetic:
+ * Stark high-contrast monochrome, sharp edges (rounded-none), monospace telemetry readouts,
+ * ghost buttons, and instantaneous transitions.
  */
-function ServiceRequestModal({ isOpen, onClose, initialUlpin = "", onSuccess }) {
+export default function ServiceRequestModal({
+  isOpen,
+  onClose,
+  initialUlpin = "",
+  onSuccess,
+  refreshCurrentParcel
+}) {
+  const [currentStep, setCurrentStep] = useState(1); // 1 | 2 | 3 | 4
+
+  // Form Fields
   const [ulpin, setUlpin] = useState("");
   const [currentOwner, setCurrentOwner] = useState("");
   const [newOwnerName, setNewOwnerName] = useState("");
+  const [applicantPhone, setApplicantPhone] = useState("");
+  const [applicantCapacity, setApplicantCapacity] = useState("Individual Buyer / Transferee");
   const [transferReason, setTransferReason] = useState("Sale Deed");
   const [applicantNotes, setApplicantNotes] = useState("");
-  const [applicantPhone, setApplicantPhone] = useState("");
-  const [mockFileName, setMockFileName] = useState("Registered_Sale_Deed_2026.pdf");
+  const [mockFileName, setMockFileName] = useState("REGISTERED_SALE_DEED_2026.PDF");
   const [declarationChecked, setDeclarationChecked] = useState(true);
 
+  // Field validation touched states
+  const [touched, setTouched] = useState({});
+
+  // Operational states
   const [loading, setLoading] = useState(false);
   const [fetchingCurrent, setFetchingCurrent] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [submissionSuccess, setSubmissionSuccess] = useState(null);
 
-  // Lookup current owner when ULPIN changes
+  const modalRef = useRef(null);
+
+  // Synchronize initial ULPIN when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const targetUlpin = (initialUlpin || "").trim().toUpperCase();
+    setCurrentStep(targetUlpin ? 1 : 2); // If ULPIN pre-selected, start at Applicant Details, otherwise start at verification
+    setUlpin(targetUlpin);
+    setNewOwnerName("");
+    setApplicantPhone("");
+    setApplicantNotes("");
+    setErrorMessage("");
+    setSubmissionSuccess(null);
+    setTouched({});
+    setMockFileName("REGISTERED_SALE_DEED_2026.PDF");
+
+    if (targetUlpin) {
+      lookupCurrentOwner(targetUlpin);
+    } else {
+      setCurrentOwner("");
+    }
+  }, [isOpen, initialUlpin]);
+
+  // Lookup existing owner from backend
   const lookupCurrentOwner = async (targetUlpin) => {
     if (!targetUlpin || targetUlpin.length < 5) {
       setCurrentOwner("");
@@ -47,59 +84,84 @@ function ServiceRequestModal({ isOpen, onClose, initialUlpin = "", onSuccess }) 
     }
   };
 
-  // Sync initial ULPIN when modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const targetUlpin = (initialUlpin || "").trim().toUpperCase();
-    const timer = setTimeout(() => {
-      setUlpin(targetUlpin);
-      setNewOwnerName("");
-      setApplicantNotes("");
-      setErrorMessage("");
-      setSubmissionSuccess(null);
-      setMockFileName("Registered_Sale_Deed_2026.pdf");
-
-      if (targetUlpin) {
-        lookupCurrentOwner(targetUlpin);
-      } else {
-        setCurrentOwner("");
-      }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [isOpen, initialUlpin]);
-
-  const handleUlpinBlur = () => {
-    lookupCurrentOwner(ulpin.trim().toUpperCase());
+  // Field-level validation rules
+  const validations = {
+    newOwnerName: newOwnerName.trim().length >= 3,
+    applicantPhone: /^[0-9+ -]{10,15}$/.test(applicantPhone.trim()),
+    ulpin: ulpin.trim().length >= 10
   };
 
-  // Mock File Upload Handler
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen && !loading) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, loading, onClose]);
+
+  // Wizard Navigation
+  const canProceedFromStep1 = validations.newOwnerName && validations.applicantPhone;
+  const canProceedFromStep2 = validations.ulpin;
+  const canProceedFromStep3 = Boolean(mockFileName);
+
+  const handleNext = () => {
+    setErrorMessage("");
+    if (currentStep === 1) {
+      setTouched((prev) => ({ ...prev, newOwnerName: true, applicantPhone: true }));
+      if (!canProceedFromStep1) {
+        setErrorMessage("VALID APPLICANT LEGAL NAME AND MOBILE TELEMETRY REQUIRED.");
+        return;
+      }
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
+      setTouched((prev) => ({ ...prev, ulpin: true }));
+      if (!canProceedFromStep2) {
+        setErrorMessage("VALID 14-CHARACTER CADASTRAL ULPIN IDENTIFIER REQUIRED.");
+        return;
+      }
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      setCurrentStep(4);
+    }
+  };
+
+  const handleBack = () => {
+    setErrorMessage("");
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  };
+
+  // File Upload Simulator
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setMockFileName(file.name);
+      setMockFileName(file.name.toUpperCase());
     }
   };
 
-  // Handle Form Submission
+  // Final Form Submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const cleanUlpin = ulpin.trim().toUpperCase();
-    const cleanNewOwner = newOwnerName.trim();
+    e?.preventDefault();
 
-    if (!cleanUlpin) {
-      setErrorMessage("Please enter a valid 14-character ULPIN.");
-      return;
-    }
+    // Aggressively sanitize input fields: strip backslashes, newlines, and carriage returns
+    const safeName = (newOwnerName || "").replace(/[\n\r\\]/g, "").trim();
+    const cleanUlpin = (ulpin || "").replace(/[\n\r\\]/g, "").replace(/[^a-zA-Z0-9]/g, "").trim();
+    const safeReason = (transferReason || "").replace(/[\n\r\\]/g, "").trim();
+    const safeNotes = (applicantNotes || "").replace(/[\n\r\\]/g, "").trim();
+    const safePhone = (applicantPhone || "").replace(/[\n\r\\]/g, "").trim();
+    const safeDoc = (mockFileName || "").replace(/[\n\r\\]/g, "").trim();
 
-    if (!cleanNewOwner) {
-      setErrorMessage("Please enter the legal name of the new owner.");
+    if (!cleanUlpin || !safeName) {
+      setErrorMessage("INCOMPLETE RECORD: ALL MANDATORY FIELDS MUST BE SATISFIED.");
       return;
     }
 
     if (!declarationChecked) {
-      setErrorMessage("Please confirm the legal declaration before submitting.");
+      setErrorMessage("STATUTORY LEGAL DECLARATION AFFIRMATION REQUIRED.");
       return;
     }
 
@@ -107,39 +169,61 @@ function ServiceRequestModal({ isOpen, onClose, initialUlpin = "", onSuccess }) 
     setErrorMessage("");
 
     try {
-      const response = await fetch("/api/mutation/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ulpin: cleanUlpin,
-          newOwnerName: cleanNewOwner,
-          transferReason,
-          documentName: mockFileName,
-          applicantNotes: applicantNotes.trim(),
-          applicantPhone: applicantPhone.trim()
-        })
-      });
+      // Register the formal mutation application with cadastral registry (Status: Pending Review)
+      let applyRes = null;
+      let applyData = null;
+      try {
+        applyRes = await fetch("/api/mutation/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ulpin: cleanUlpin,
+            newOwnerName: safeName,
+            transferReason: safeReason,
+            documentName: safeDoc,
+            applicantNotes: safeNotes,
+            applicantPhone: safePhone
+          })
+        });
 
-      const result = await response.json();
+        try {
+          applyData = await applyRes.json();
+        } catch (jsonErr) {
+          console.warn("Could not parse POST response as JSON:", jsonErr);
+          applyData = { success: applyRes.ok };
+        }
+      } catch (applyErr) {
+        console.warn("Mutation registry application failed:", applyErr);
+      }
 
-      if (response.ok && result.success) {
+      const isSuccess = Boolean(applyRes && applyRes.ok);
+
+      if (isSuccess) {
+        // Auto-Refresh: sync sidebar state
+        if (typeof refreshCurrentParcel === "function") {
+          await refreshCurrentParcel(cleanUlpin);
+        } else if (typeof window.gisRefreshCurrentParcel === "function") {
+          await window.gisRefreshCurrentParcel(cleanUlpin);
+        }
+
+        const payload = applyData?.data || { ulpin: cleanUlpin, newOwnerName: safeName };
         setSubmissionSuccess({
-          applicationId: result.applicationId,
+          applicationId: applyData?.applicationId || `MUT-${Date.now().toString().slice(-6)}`,
           ulpin: cleanUlpin,
-          newOwnerName: cleanNewOwner,
-          transferReason,
-          message: result.message
+          newOwnerName: safeName,
+          transferReason: safeReason
         });
 
         if (onSuccess) {
-          onSuccess(result.data, cleanUlpin);
+          onSuccess(payload, cleanUlpin);
         }
       } else {
-        throw new Error(result.message || "Failed to submit mutation application");
+        const errorMsg = updateData?.message || applyData?.message || "TRANSACTION FAILURE: UNABLE TO COMMIT MUTATION TO CADASTRAL LEDGER.";
+        throw new Error(errorMsg);
       }
     } catch (err) {
       console.error("Mutation application error:", err);
-      setErrorMessage(err.message || "Network error. Unable to reach server.");
+      setErrorMessage(err.message || "NETWORK ERROR: FAILED TO COMMUNICATE WITH CADASTRAL GATEWAY.");
     } finally {
       setLoading(false);
     }
@@ -147,289 +231,579 @@ function ServiceRequestModal({ isOpen, onClose, initialUlpin = "", onSuccess }) 
 
   if (!isOpen) return null;
 
+  const stepLabels = [
+    { num: 1, code: "01", title: "APPLICANT" },
+    { num: 2, code: "02", title: "PARCEL" },
+    { num: 3, code: "03", title: "DOCUMENTS" },
+    { num: 4, code: "04", title: "REVIEW" }
+  ];
+
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6">
-      {/* Darkened Backdrop with blur */}
+    <div className="fixed inset-0 z-[2100] flex items-center justify-center p-2 sm:p-4 md:p-6">
+      {/* High-Contrast Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        className="fixed inset-0 bg-black/75 dark:bg-black/90 backdrop-blur-sm transition-opacity"
+        onClick={loading ? undefined : onClose}
+        aria-hidden="true"
       />
 
-      {/* Modal Dialog Card */}
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl transition">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+      {/* Modal Dialog Container */}
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mutation-modal-title"
+        className="relative z-10 flex max-h-[94vh] w-full max-w-xl flex-col overflow-hidden rounded-none border border-gray-300 dark:border-neutral-800 bg-white dark:bg-[#050505] shadow-2xl transition-colors duration-100"
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-gray-300 dark:border-neutral-800 bg-white dark:bg-[#050505] px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none border border-black bg-black text-white dark:border-white dark:bg-white dark:text-black">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2.2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 sm:text-lg">
-                Application for Land Title Mutation
+              <h3 id="mutation-modal-title" className="text-xl font-extrabold tracking-[0.1em] uppercase text-gray-900 dark:text-white">
+                Form 12-A: Title Mutation
               </h3>
-              <p className="text-xs text-slate-500">
-                Form 12-A: Transfer of Ownership & RoR Registry Update
+              <p className="text-xs font-mono tracking-widest text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                MINISTRY OF RURAL DEVELOPMENT • CADASTRAL ROR SANCTION
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700"
+            disabled={loading}
+            aria-label="Close modal"
+            className="flex h-9 w-9 items-center justify-center rounded-none border border-transparent text-gray-400 transition-colors duration-100 hover:border-gray-300 hover:bg-gray-100 hover:text-black dark:text-neutral-500 dark:hover:border-neutral-700 dark:hover:bg-neutral-900 dark:hover:text-white"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        {/* The Stepper (Sequence Indicator: Terminal Aesthetic) */}
+        {!submissionSuccess && (
+          <div className="border-b border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-[#070707] px-6 pt-3">
+            <div className="grid grid-cols-4 gap-2">
+              {stepLabels.map((s) => {
+                const isActive = currentStep === s.num;
+                return (
+                  <div
+                    key={s.num}
+                    className={`text-center transition-colors duration-100 ${
+                      isActive
+                        ? "border-b-2 border-black dark:border-white text-black dark:text-white pb-2 font-mono text-xs tracking-widest uppercase font-bold"
+                        : "border-b-2 border-transparent text-gray-400 dark:text-neutral-600 pb-2 font-mono text-xs tracking-widest uppercase"
+                    }`}
+                    aria-current={isActive ? "step" : undefined}
+                  >
+                    <span className="inline-block truncate">
+                      [{s.code}] {s.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {/* Error Banner */}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mb-5 flex items-center gap-3 rounded-none border border-red-500 bg-red-50/70 p-3.5 text-xs font-mono uppercase tracking-wider text-red-700 dark:border-red-600 dark:bg-red-950/30 dark:text-red-400"
+            >
+              <span className="font-bold text-red-600 dark:text-red-400">[ERR]</span>
+              <span className="leading-snug">{errorMessage}</span>
+            </div>
+          )}
+
           {submissionSuccess ? (
-            /* Success Confirmation Screen */
-            <div className="flex flex-col items-center py-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-600 shadow-inner">
+            /* ============================================================ */
+            /* SUCCESS CONFIRMATION READOUT */
+            /* ============================================================ */
+            <div className="flex flex-col items-center py-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-none border-2 border-black bg-black text-xl font-bold font-mono text-white dark:border-white dark:bg-white dark:text-black shadow-none">
                 ✓
               </div>
 
-              <span className="mt-4 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">
-                Application Queued for Review
-              </span>
+              <div className="mt-4 rounded-none border border-gray-300 dark:border-neutral-700 bg-gray-50 dark:bg-[#0a0a0a] px-3 py-1 font-mono text-[10px] font-bold tracking-[0.2em] uppercase text-gray-700 dark:text-neutral-300">
+                APPLICATION QUEUED FOR SANCTION
+              </div>
 
-              <h4 className="mt-2 text-xl font-black text-slate-900">
-                Application Submitted Successfully!
+              <h4 className="mt-3 text-xl font-extrabold tracking-[0.1em] uppercase text-gray-900 dark:text-white">
+                APPLICATION FILED SUCCESSFULLY
               </h4>
 
-              <p className="mt-2 text-xs text-slate-500 sm:text-sm">
-                Your request has been filed in the digital public cadastral registry.
+              <p className="mt-1 text-xs font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                ANCHORED WITH 14-DIGIT ULPIN IN DIGITAL PUBLIC CADASTRAL REGISTRY
               </p>
 
-              {/* Application Details Summary */}
-              <div className="mt-5 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-xs">
-                <div className="flex justify-between border-b border-slate-200 pb-2.5">
-                  <span className="text-slate-500">Application Number</span>
-                  <span className="font-mono font-bold text-blue-700">{submissionSuccess.applicationId}</span>
+              {/* Stark Terminal Readout Grid */}
+              <div className="mt-6 w-full rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-[#0a0a0a] p-4 text-left divide-y divide-gray-200 dark:divide-neutral-800">
+                <div className="flex justify-between pb-3">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                    DOCKET / APPLICATION NO.
+                  </span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-wider">
+                    {submissionSuccess.applicationId}
+                  </span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 py-2.5">
-                  <span className="text-slate-500">Parcel ULPIN</span>
-                  <span className="font-mono font-bold text-slate-800">{submissionSuccess.ulpin}</span>
+                <div className="flex justify-between py-3">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                    PARCEL ULPIN
+                  </span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-wider">
+                    {submissionSuccess.ulpin}
+                  </span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 py-2.5">
-                  <span className="text-slate-500">New Transferee / Owner</span>
-                  <span className="font-bold text-slate-800">{submissionSuccess.newOwnerName}</span>
+                <div className="flex justify-between py-3">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                    NEW TRANSFEREE / OWNER
+                  </span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                    {submissionSuccess.newOwnerName}
+                  </span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 py-2.5">
-                  <span className="text-slate-500">Transfer Nature</span>
-                  <span className="font-semibold text-slate-700">{submissionSuccess.transferReason}</span>
+                <div className="flex justify-between py-3">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                    TRANSFER NATURE
+                  </span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                    {submissionSuccess.transferReason}
+                  </span>
                 </div>
-                <div className="flex justify-between pt-2.5">
-                  <span className="text-slate-500">Current Status</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-amber-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
-                    Pending Revenue Officer Approval
+                <div className="flex justify-between pt-3">
+                  <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500">
+                    STATUS READOUT
+                  </span>
+                  <span className="font-mono text-xs font-bold text-black dark:text-white tracking-wider inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 bg-black dark:bg-white animate-ping" />
+                    PENDING REVENUE OFFICER SANCTION
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-lg bg-blue-50 p-3 text-left text-[11px] text-blue-700">
-                💡 <strong>Tip for Testing:</strong> Switch to the <strong>Admin Portal</strong> using the header toggle to view and approve this mutation application in real time!
+              <div className="mt-4 w-full rounded-none border border-gray-300 dark:border-neutral-800 bg-gray-100/60 dark:bg-[#070707] p-3 text-left font-mono text-[10px] tracking-wider uppercase text-gray-600 dark:text-neutral-400">
+                » TELEMETRY NOTE: REVENUE OFFICER VERIFICATION PORTAL CAN SANCTION THIS DOCKET LIVE FROM THE ADMIN DASHBOARD.
               </div>
 
-              <div className="mt-6 flex w-full justify-end gap-3">
+              <div className="mt-6 flex w-full justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 sm:w-auto sm:px-6"
+                  className="border-2 border-black bg-black text-white hover:bg-transparent hover:text-black dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors duration-100 rounded-none px-8 py-3 uppercase text-xs tracking-[0.2em] font-bold w-full sm:w-auto cursor-pointer"
                 >
-                  Close & View Parcel
+                  RETURN TO CADASTRE
                 </button>
               </div>
             </div>
           ) : (
-            /* Mutation Application Form */
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {errorMessage && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  <svg className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{errorMessage}</span>
+            /* ============================================================ */
+            /* MULTI-STEP WIZARD BODY */
+            /* ============================================================ */
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* STEP 1: APPLICANT DETAILS */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
+                      SEQUENCE 01 // TRANSFEREE & APPLICANT TELEMETRY
+                    </h4>
+                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                      Enter the statutory particulars of the acquiring citizen or corporate entity.
+                    </p>
+                  </div>
+
+                  {/* Transferee Name */}
+                  <div>
+                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      Transferee / New Owner Legal Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={newOwnerName}
+                        onChange={(e) => setNewOwnerName(e.target.value)}
+                        onBlur={() => setTouched((p) => ({ ...p, newOwnerName: true }))}
+                        placeholder="E.G. SMT. SUNITA RAO"
+                        required
+                        aria-invalid={touched.newOwnerName && !validations.newOwnerName}
+                        className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 transition-colors duration-100 ${
+                          touched.newOwnerName && !validations.newOwnerName
+                            ? "border-red-500 focus:border-red-500"
+                            : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white"
+                        }`}
+                      />
+                      {touched.newOwnerName && (
+                        <div className="pointer-events-none absolute right-4 top-3.5 flex items-center">
+                          {validations.newOwnerName ? (
+                            <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">✓</span>
+                          ) : (
+                            <span className="font-mono text-xs font-bold text-red-600 dark:text-red-400">✕</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {touched.newOwnerName && !validations.newOwnerName && (
+                      <p className="mt-1.5 text-[10px] font-mono tracking-wider uppercase text-red-600 dark:text-red-400">
+                        LEGAL NAME MUST CONTAIN A MINIMUM OF 3 CHARACTERS.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Mobile Number & Capacity */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                        Applicant Mobile Number <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={applicantPhone}
+                          onChange={(e) => setApplicantPhone(e.target.value)}
+                          onBlur={() => setTouched((p) => ({ ...p, applicantPhone: true }))}
+                          placeholder="+91 98765 43210"
+                          required
+                          className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 transition-colors duration-100 ${
+                            touched.applicantPhone && !validations.applicantPhone
+                              ? "border-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white"
+                          }`}
+                        />
+                        {touched.applicantPhone && (
+                          <div className="pointer-events-none absolute right-4 top-3.5 flex items-center">
+                            {validations.applicantPhone ? (
+                              <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">✓</span>
+                            ) : (
+                              <span className="font-mono text-xs font-bold text-red-600 dark:text-red-400">✕</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[10px] font-mono tracking-wider uppercase text-gray-400 dark:text-neutral-500">
+                        CELLULAR DISPATCH FOR LEDGER AUDIT LOGS
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                        Applicant Capacity / Role
+                      </label>
+                      <select
+                        value={applicantCapacity}
+                        onChange={(e) => setApplicantCapacity(e.target.value)}
+                        className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100 cursor-pointer"
+                      >
+                        <option value="Individual Buyer / Transferee">INDIVIDUAL BUYER / TRANSFEREE</option>
+                        <option value="Legal Heir / Next of Kin">LEGAL HEIR / NEXT OF KIN</option>
+                        <option value="Gift Donee">GIFT DONEE</option>
+                        <option value="Power of Attorney Holder">POWER OF ATTORNEY HOLDER</option>
+                        <option value="Authorized Corporate Officer">AUTHORIZED CORPORATE OFFICER</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* ULPIN and Current Owner */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Parcel ULPIN <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={ulpin}
-                    onChange={(e) => setUlpin(e.target.value.toUpperCase())}
-                    onBlur={handleUlpinBlur}
-                    placeholder="e.g. 1234567890ABCD"
-                    required
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs font-semibold text-slate-800 uppercase shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
-                  <p className="mt-0.5 text-[10px] text-slate-400">14-digit Unique Land Parcel ID</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Existing Owner
-                  </label>
-                  <div className="mt-1 flex h-[34px] items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-xs font-medium text-slate-700">
-                    {fetchingCurrent ? (
-                      <span className="text-slate-400 animate-pulse">Looking up RoR...</span>
-                    ) : (
-                      currentOwner || <span className="text-slate-400 italic">Not in cache / New Entry</span>
-                    )}
+              {/* STEP 2: PARCEL VERIFICATION */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
+                      SEQUENCE 02 // CADASTRAL PARCEL & TRANSFER NATURE
+                    </h4>
+                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                      Link application to verified 14-character ULPIN and specify statutory conveyance type.
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-[10px] text-slate-400">Fetched from Land Revenue Database</p>
-                </div>
-              </div>
 
-              {/* New Owner & Transfer Reason */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    New Transferee / Owner Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newOwnerName}
-                    onChange={(e) => setNewOwnerName(e.target.value)}
-                    placeholder="e.g. Sunita Rao"
-                    required
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Nature of Transfer <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={transferReason}
-                    onChange={(e) => setTransferReason(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  >
-                    <option value="Sale Deed">Sale Deed (Sub-Registrar)</option>
-                    <option value="Inheritance / Succession">Inheritance / Legal Heir Succession</option>
-                    <option value="Gift Deed">Gift Deed / Settlement</option>
-                    <option value="Family Partition">Family Partition / Division</option>
-                    <option value="Court Decree">Court Decree / Legal Order</option>
-                    <option value="Government Allotment">Government Allotment</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Applicant Phone / Remarks */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Applicant Mobile Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={applicantPhone}
-                    onChange={(e) => setApplicantPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Sub-Registrar Office / Deed No.
-                  </label>
-                  <input
-                    type="text"
-                    value={applicantNotes}
-                    onChange={(e) => setApplicantNotes(e.target.value)}
-                    placeholder="e.g. SRO-BLR-2026/459"
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-              </div>
-
-              {/* Document Attachment Mock */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Supporting Document (Registered Deed / Encumbrance Certificate)
-                </label>
-                <div className="mt-1.5 flex items-center justify-between rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {/* ULPIN Input */}
                     <div>
-                      <p className="text-xs font-bold text-slate-800">{mockFileName}</p>
-                      <p className="text-[10px] text-slate-400">PDF • 2.4 MB • Certified Digital Copy</p>
+                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                        14-digit ULPIN <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={ulpin}
+                          onChange={(e) => setUlpin(e.target.value.toUpperCase())}
+                          onBlur={() => {
+                            setTouched((p) => ({ ...p, ulpin: true }));
+                            lookupCurrentOwner(ulpin.trim().toUpperCase());
+                          }}
+                          placeholder="E.G. 29572001218249"
+                          required
+                          className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm uppercase focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100"
+                        />
+                        {validations.ulpin && (
+                          <span className="pointer-events-none absolute right-4 top-3.5 font-mono text-xs font-bold text-gray-900 dark:text-white">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Current Owner Readout */}
+                    <div>
+                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                        Current Registered Owner
+                      </label>
+                      <div className="flex h-[46px] items-center rounded-none border border-gray-200 dark:border-neutral-800/80 bg-gray-100 dark:bg-[#0e0e0e] px-4 font-mono text-sm text-gray-900 dark:text-neutral-200">
+                        {fetchingCurrent ? (
+                          <span className="text-gray-400 dark:text-neutral-500 animate-pulse tracking-widest text-xs">
+                            [SYNCING ROR LEDGER...]
+                          </span>
+                        ) : (
+                          currentOwner || (
+                            <span className="text-gray-400 dark:text-neutral-500 italic text-xs">
+                              [AUTO-FETCHED FROM POSTGIS]
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <label className="cursor-pointer rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-blue-50">
-                    <span>Replace File</span>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
+                  {/* Transfer Nature Selection */}
+                  <div>
+                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      Nature of Title Transfer <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={transferReason}
+                      onChange={(e) => setTransferReason(e.target.value)}
+                      className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100 cursor-pointer"
+                    >
+                      <option value="Sale Deed">SALE DEED (SUB-REGISTRAR CERTIFIED)</option>
+                      <option value="Inheritance / Succession">INHERITANCE / LEGAL HEIR SUCCESSION</option>
+                      <option value="Gift Deed">GIFT DEED / FAMILY SETTLEMENT</option>
+                      <option value="Family Partition">FAMILY PARTITION / COURT DECREE</option>
+                      <option value="Government Allotment">GOVERNMENT ALLOTMENT / GRANT</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Legal Declaration */}
-              <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <input
-                  type="checkbox"
-                  id="mutation-declaration"
-                  checked={declarationChecked}
-                  onChange={(e) => setDeclarationChecked(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="mutation-declaration" className="text-[11px] leading-tight text-slate-600">
-                  I hereby declare that the stamp duty and registration fees have been paid at the Sub-Registrar Office, and the particulars provided are authentic under the State Land Revenue Act.
-                </label>
-              </div>
+              {/* STEP 3: SUPPORTING DOCUMENTS (Secure Ingestion Zone) */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
+                      SEQUENCE 03 // EVIDENCE & DEED REGISTRATION
+                    </h4>
+                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                      Upload certified electronic sale deed or encumbrance title certificate.
+                    </p>
+                  </div>
 
-              {/* Footer Actions */}
-              <div className="mt-5 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={loading}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
+                  {/* SRO Deed Reference */}
+                  <div>
+                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      Sub-Registrar Office (SRO) Deed / Book Reference
+                    </label>
+                    <input
+                      type="text"
+                      value={applicantNotes}
+                      onChange={(e) => setApplicantNotes(e.target.value)}
+                      placeholder="E.G. SRO-BLR-NORTH-2026/VOL-412/PAGE-89"
+                      className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm uppercase focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100"
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || !declarationChecked}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  {loading ? (
-                    <>
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      <span>Submitting Application...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Submit Mutation Request</span>
-                    </>
+                  {/* Secure Data Ingestion Zone */}
+                  <div>
+                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      Ingestion Document Attachment (PDF / JPG / PNG)
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-neutral-700 bg-gray-50 dark:bg-[#0a0a0a] hover:border-black dark:hover:border-white transition-colors duration-100 rounded-none p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black">
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-mono text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                              {mockFileName}
+                            </p>
+                            <p className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 mt-0.5">
+                              CERTIFIED ELECTRONIC RECORD • SHA-256 VERIFIED • 2.4 MB
+                            </p>
+                          </div>
+                        </div>
+
+                        <label className="cursor-pointer rounded-none border border-black dark:border-white bg-transparent px-4 py-2 text-[10px] font-mono font-bold tracking-[0.15em] uppercase text-black dark:text-white transition-colors duration-100 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-center sm:text-left">
+                          <span>REPLACE FILE</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: REVIEW & SANCTION (Terminal Readout Grid) */}
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
+                      SEQUENCE 04 // AUDIT RECAP & SANCTION REVIEW
+                    </h4>
+                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                      Verify application particulars before committing to the immutable cadastral ledger.
+                    </p>
+                  </div>
+
+                  {/* Stark Terminal Readout Grid */}
+                  <div className="rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-[#0a0a0a] p-4 divide-y divide-gray-200 dark:divide-neutral-800">
+                    <div className="grid grid-cols-2 gap-4 pb-3">
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          PARCEL ULPIN
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-wider">
+                          {ulpin}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          RECORDED OWNER
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                          {currentOwner || "[RECORD IN POSTGIS CACHE]"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 py-3">
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          NEW TRANSFEREE
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                          {newOwnerName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          CONVEYANCE NATURE
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                          {transferReason}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-3">
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          APPLICANT PHONE
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                          {applicantPhone}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
+                          ATTACHED EVIDENCE
+                        </span>
+                        <p className="font-mono text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {mockFileName}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Statutory Legal Declaration */}
+                  <div className="flex items-start gap-3 rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-3.5">
+                    <input
+                      type="checkbox"
+                      id="mutation-declaration"
+                      checked={declarationChecked}
+                      onChange={(e) => setDeclarationChecked(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded-none border-2 border-gray-400 dark:border-neutral-600 bg-transparent text-black dark:text-white focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="mutation-declaration"
+                      className="text-[11px] font-mono leading-relaxed text-gray-600 dark:text-neutral-400 cursor-pointer select-none uppercase tracking-wide"
+                    >
+                      I HEREBY SOLEMNLY AFFIRM THAT STATUTORY SRO STAMP DUTY AND CADASTRAL REGISTRATION FEES HAVE BEEN REMITTED, AND SUBMITTED PARTICULARS ARE AUTHENTIC UNDER THE STATE LAND REVENUE CODE.
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Wizard Action Controls (SpaceX Ghost Style) */}
+              <div className="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-neutral-800 pt-5">
+                <div>
+                  {currentStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      disabled={loading}
+                      className="text-gray-500 hover:text-black dark:text-neutral-500 dark:hover:text-white uppercase text-xs tracking-[0.2em] font-bold px-4 py-3 transition-colors duration-100 cursor-pointer"
+                    >
+                      ← BACK
+                    </button>
                   )}
-                </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={loading}
+                    className="text-gray-500 hover:text-black dark:text-neutral-500 dark:hover:text-white uppercase text-xs tracking-[0.2em] font-bold px-4 py-3 transition-colors duration-100 cursor-pointer"
+                  >
+                    CANCEL
+                  </button>
+
+                  {currentStep < 4 ? (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="border-2 border-black bg-black text-white hover:bg-transparent hover:text-black dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors duration-100 rounded-none px-8 py-3 uppercase text-xs tracking-[0.2em] font-bold cursor-pointer"
+                    >
+                      NEXT STEP →
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={loading || !declarationChecked}
+                      className="border-2 border-black bg-black text-white hover:bg-transparent hover:text-black dark:border-white dark:bg-white dark:text-black dark:hover:bg-transparent dark:hover:text-white transition-colors duration-100 rounded-none px-8 py-3 uppercase text-xs tracking-[0.2em] font-bold inline-flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <span className="h-3.5 w-3.5 animate-spin border-2 border-current border-t-transparent" />
+                          <span>COMMITTING TO LEDGER...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2.2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>SUBMIT FORM 12-A</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           )}
@@ -438,5 +812,3 @@ function ServiceRequestModal({ isOpen, onClose, initialUlpin = "", onSuccess }) 
     </div>
   );
 }
-
-export default ServiceRequestModal;

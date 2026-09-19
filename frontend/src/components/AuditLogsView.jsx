@@ -66,24 +66,24 @@ function AuditLogsView({ onInspectParcel }) {
     };
   }, [actionFilter]);
 
-  // Action badge styling map
+  // Action badge styling map - Terminal style
   const getActionBadge = (action = "") => {
     const act = action.toUpperCase();
     switch (act) {
       case "MUTATION_APPROVED":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        return "border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-500/50 dark:bg-neutral-900 dark:text-emerald-400";
       case "CITIZEN_APPLIED":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "border-gray-300 bg-gray-100 text-gray-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200";
       case "ENCUMBRANCE_VERIFIED":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-500/50 dark:bg-neutral-900 dark:text-amber-400";
       case "PARCEL_LOOKUP":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+        return "border-gray-300 bg-gray-100 text-gray-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300";
       case "REGISTRY_SEARCH":
-        return "bg-cyan-50 text-cyan-700 border-cyan-200";
+        return "border-cyan-400 bg-cyan-50 text-cyan-800 dark:border-cyan-500/50 dark:bg-neutral-900 dark:text-cyan-300";
       case "SYSTEM_INITIALIZED":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "border-purple-400 bg-purple-50 text-purple-800 dark:border-purple-500/50 dark:bg-neutral-900 dark:text-purple-300";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "border-gray-300 bg-gray-100 text-gray-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white";
     }
   };
 
@@ -115,34 +115,34 @@ function AuditLogsView({ onInspectParcel }) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-900 dark:text-white font-sans">
       {/* Top Banner & Security Status */}
-      <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-4 border-b border-gray-200 dark:border-neutral-800 pb-5 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 rounded bg-slate-900 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="flex items-center gap-1.5 rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-100 dark:bg-neutral-900 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               WORM Compliant Ledger
             </span>
-            <span className="text-xs text-slate-400">• Immutable Security Trail</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-gray-500 dark:text-neutral-400">• Immutable Security Trail</span>
           </div>
-          <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+          <h2 className="mt-2 text-xl font-black tracking-tight text-black dark:text-white uppercase sm:text-2xl">
             System Audit Logs & Security Trail
           </h2>
-          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+          <p className="mt-1 text-xs font-mono uppercase tracking-wider text-gray-500 dark:text-neutral-400">
             Cryptographically sealed event tracking for land governance and compliance audits.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {downloadSuccess && (
-            <span className="text-xs font-semibold text-emerald-600">Exported JSON ✓</span>
+            <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">EXPORTED JSON ✓</span>
           )}
           <button
             onClick={handleExport}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+            className="inline-flex items-center gap-2 rounded-none border border-gray-300 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white px-4 py-2 text-xs font-mono font-bold uppercase tracking-widest text-gray-700 dark:text-neutral-300 transition-all cursor-pointer"
           >
-            <svg className="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-3.5 w-3.5 text-gray-400 dark:text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             <span>Export Trail</span>
@@ -151,10 +151,10 @@ function AuditLogsView({ onInspectParcel }) {
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-50"
+            className="border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none px-6 py-2 uppercase text-xs tracking-widest font-bold inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <svg
-              className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
+              className={`h-3.5 w-3.5 ${loading ? "animate-spin text-gray-400 dark:text-neutral-400" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -168,55 +168,61 @@ function AuditLogsView({ onInspectParcel }) {
 
       {/* 3 Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Log Entries</span>
-          <p className="mt-1 font-mono text-2xl font-black text-slate-900">{logs.length}</p>
-          <p className="mt-0.5 text-[11px] text-slate-500">Persisted across system nodes</p>
+        <div className="rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col justify-between">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-neutral-400">Total Log Entries</span>
+          <p className="mt-2 font-mono text-3xl font-black text-gray-900 dark:text-white tracking-tight">{logs.length}</p>
+          <p className="mt-1 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Persisted across system nodes</p>
         </div>
 
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Ledger Integrity</span>
-          <p className="mt-1 font-mono text-2xl font-black text-emerald-900">VERIFIED</p>
-          <p className="mt-0.5 text-[11px] text-emerald-700">0 Tampering alerts detected</p>
+        {/* Terminal Alert Box for Ledger Integrity */}
+        <div className="border border-emerald-500 dark:border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono p-4 rounded-none flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Ledger Integrity</span>
+            <span className="h-2 w-2 rounded-none bg-emerald-500 animate-pulse" />
+          </div>
+          <p className="mt-2 text-3xl font-black tracking-tight">VERIFIED</p>
+          <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400/80">0 Tampering alerts detected • SHA-256</p>
         </div>
 
-        <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Active Operators</span>
-          <p className="mt-1 font-mono text-2xl font-black text-blue-900">
+        <div className="rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-5 flex flex-col justify-between">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-neutral-400">Active Operators</span>
+          <p className="mt-2 font-mono text-3xl font-black text-gray-900 dark:text-white tracking-tight">
             {new Set(logs.map((l) => l.user)).size}
           </p>
-          <p className="mt-0.5 text-[11px] text-blue-700">Authenticated user sessions</p>
+          <p className="mt-1 text-[11px] font-mono text-gray-500 dark:text-neutral-400">Authenticated user sessions</p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center w-full min-w-0">
         {/* Action Type Tabs */}
-        <div className="flex flex-wrap gap-1.5 rounded-lg border border-slate-200 bg-white p-1 shadow-xs">
-          {[
-            { id: "ALL", label: "All Events" },
-            { id: "MUTATION_APPROVED", label: "Approvals" },
-            { id: "CITIZEN_APPLIED", label: "Applications" },
-            { id: "PARCEL_LOOKUP", label: "Lookups" },
-            { id: "ENCUMBRANCE_VERIFIED", label: "Encumbrance" }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActionFilter(tab.id)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition ${
-                actionFilter === tab.id
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="w-full sm:w-auto overflow-x-auto no-scrollbar">
+          <div className="inline-flex min-w-max flex-nowrap gap-1 rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-1">
+            {[
+              { id: "ALL", label: "All Events" },
+              { id: "MUTATION_APPROVED", label: "Approvals" },
+              { id: "CITIZEN_APPLIED", label: "Applications" },
+              { id: "PARCEL_LOOKUP", label: "Lookups" },
+              { id: "ENCUMBRANCE_VERIFIED", label: "Encumbrance" }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActionFilter(tab.id)}
+                className={`rounded-none px-3 py-1.5 text-[11px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  actionFilter === tab.id
+                    ? "bg-gray-900 text-white dark:bg-white dark:text-black font-extrabold"
+                    : "text-gray-600 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full sm:w-72">
-          <div className="pointer-events-none absolute left-3 top-2.5 text-slate-400">
+        <div className="relative w-full sm:w-80 min-w-0">
+          <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 dark:text-neutral-500">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
             </svg>
@@ -225,35 +231,35 @@ function AuditLogsView({ onInspectParcel }) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search Event ID, ULPIN, or User..."
-            className="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs font-mono font-medium text-slate-800 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            placeholder="Search Log ID, ULPIN, User..."
+            className="w-full rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] py-2 pl-9 pr-3 text-xs font-mono font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:border-gray-900 dark:focus:border-white focus:outline-none transition"
           />
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Error State */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+        <div className="rounded-none border border-rose-400 dark:border-rose-500/50 bg-rose-50 dark:bg-rose-950/20 p-4 text-xs font-mono text-rose-700 dark:text-rose-400">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex h-64 items-center justify-center rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] w-full">
           <div className="flex flex-col items-center gap-2">
-            <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
-            <p className="text-xs font-mono text-slate-500">Querying cryptographic audit trail...</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-900 dark:border-white border-t-transparent" />
+            <p className="text-xs font-mono uppercase tracking-widest text-gray-500 dark:text-neutral-400">Querying cryptographic audit trail...</p>
           </div>
         </div>
       ) : displayedLogs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <p className="font-mono text-sm font-bold text-slate-700">No log entries matched your filter.</p>
+        <div className="flex flex-col items-center justify-center rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-8 sm:p-12 text-center w-full">
+          <p className="font-mono text-xs uppercase tracking-widest text-gray-500 dark:text-neutral-400">No log entries matched your filter.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm font-mono text-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="border-b border-slate-200 bg-slate-900 text-[11px] font-bold uppercase tracking-wider text-slate-300">
+        <div className="overflow-hidden rounded-none border border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#0a0a0a] font-mono text-xs w-full max-w-full min-w-0">
+          <div className="w-full overflow-x-auto no-scrollbar">
+            <table className="w-full min-w-[750px] text-left">
+              <thead className="border-b border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-black text-[10px] uppercase tracking-[0.2em] text-gray-600 dark:text-neutral-500 font-mono font-bold">
                 <tr>
                   <th className="px-4 py-3.5">Log ID</th>
                   <th className="px-4 py-3.5">Action Event</th>
@@ -264,19 +270,19 @@ function AuditLogsView({ onInspectParcel }) {
                   <th className="px-4 py-3.5 text-right">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white font-sans text-xs">
+              <tbody className="divide-y divide-gray-200 dark:divide-neutral-900 bg-transparent text-xs">
                 {displayedLogs.map((log) => {
                   return (
-                    <tr key={log.id} className="transition hover:bg-slate-50/80">
+                    <tr key={log.id} className="transition-colors hover:bg-gray-100 dark:hover:bg-neutral-900/50">
                       {/* Log ID */}
-                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[11px] font-bold text-slate-500">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[11px] font-bold text-gray-500 dark:text-neutral-400">
                         {log.id}
                       </td>
 
-                      {/* Action Event Badge */}
+                      {/* Action Event Badge - Terminal badge */}
                       <td className="whitespace-nowrap px-4 py-3.5">
                         <span
-                          className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-extrabold uppercase ${getActionBadge(
+                          className={`inline-block border font-mono text-[10px] px-2 py-1 rounded-none font-bold uppercase tracking-wider ${getActionBadge(
                             log.action
                           )}`}
                         >
@@ -286,22 +292,22 @@ function AuditLogsView({ onInspectParcel }) {
 
                       {/* Operator & Role */}
                       <td className="px-4 py-3.5">
-                        <div className="font-semibold text-slate-900">{log.role}</div>
-                        <div className="font-mono text-[10px] text-slate-400">{log.user}</div>
+                        <div className="font-bold text-gray-900 dark:text-white uppercase text-xs tracking-wider">{log.role}</div>
+                        <div className="font-mono text-[10px] text-gray-500 dark:text-neutral-400">{log.user}</div>
                       </td>
 
                       {/* Target ULPIN */}
-                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[11px] font-bold text-blue-700">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[11px] font-bold text-gray-900 dark:text-white tracking-wider">
                         {log.ulpin !== "N/A" && log.ulpin !== "GLOBAL" ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <span>{log.ulpin}</span>
                             {onInspectParcel && (
                               <button
                                 onClick={() => onInspectParcel(log.ulpin)}
                                 title="Inspect on GIS map"
-                                className="rounded p-0.5 text-slate-400 hover:text-blue-600"
+                                className="rounded-none p-0.5 text-gray-400 hover:text-gray-900 dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
                               >
-                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
@@ -309,32 +315,32 @@ function AuditLogsView({ onInspectParcel }) {
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400">{log.ulpin}</span>
+                          <span className="text-gray-500 dark:text-neutral-500">{log.ulpin}</span>
                         )}
                       </td>
 
                       {/* Description / Details */}
-                      <td className="max-w-xs px-4 py-3.5 text-slate-700">
+                      <td className="max-w-xs px-4 py-3.5 text-gray-600 dark:text-neutral-300 font-mono">
                         <p className="truncate text-xs" title={log.details}>
                           {log.details}
                         </p>
                       </td>
 
                       {/* Origin IP & Status */}
-                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[10px] text-slate-500">
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700 font-bold">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[10px] text-gray-500 dark:text-neutral-400">
+                        <span className="rounded-none border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-black px-1.5 py-0.5 text-gray-700 dark:text-neutral-300 font-bold">
                           {log.ip}
                         </span>
                       </td>
 
                       {/* Timestamp */}
-                      <td className="whitespace-nowrap px-4 py-3.5 text-right font-mono text-[11px] text-slate-500">
+                      <td className="whitespace-nowrap px-4 py-3.5 text-right font-mono text-[11px] text-gray-500 dark:text-neutral-400">
                         {new Date(log.timestamp).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit"
                         })}
-                        <span className="ml-1 text-[10px] text-slate-400">
+                        <span className="ml-1 text-[10px] text-gray-400 dark:text-neutral-400">
                           {new Date(log.timestamp).toLocaleDateString([], {
                             month: "short",
                             day: "numeric"

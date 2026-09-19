@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useTheme } from "../context/ThemeContext";
+import LayerSwitcher from "./LayerSwitcher";
 
-// 3 reliable, API-key-free professional basemaps
-const BASEMAP_CONFIGS = {
+const MIN_CADASTRE_ZOOM = 15;
+
+// Basemap configurations strictly using 100% free OpenStreetMap & elevation providers (Zero API keys)
+export const GET_BASEMAP_CONFIGS = (isDark = false) => ({
   streets: {
     id: "streets",
-    name: "Streets",
-    sublabel: "OpenStreetMap",
+    name: isDark ? "Night Vector" : "Blueprint Vector",
+    sublabel: "OpenStreetMap Standard",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19
@@ -22,249 +27,520 @@ const BASEMAP_CONFIGS = {
   },
   topographic: {
     id: "topographic",
-    name: "Topographic",
-    sublabel: "OpenTopoMap",
+    name: isDark ? "Dark Topo" : "Topography",
+    sublabel: "OpenTopoMap Elevation",
     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a>',
     maxZoom: 17
   }
+});
+
+/**
+ * Adaptive Blueprint Polygons:
+ * - Dark Mode Map: color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1
+ * - Light Mode Map: color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1
+ * - Hover / Active State (Both Modes): color: '#10b981', weight: 2, fillColor: '#10b981', fillOpacity: 0.3
+ */
+const getParcelStyle = (feature, isSelected = false, isDark = true) => {
+  if (isSelected) {
+    return {
+      color: "#10b981",
+      weight: 2,
+      fillColor: "#10b981",
+      fillOpacity: 0.3,
+      opacity: 1,
+      lineCap: "round",
+      lineJoin: "round"
+    };
+  }
+
+  if (isDark) {
+    return {
+      color: "#3b82f6",
+      weight: 1,
+      fillColor: "#3b82f6",
+      fillOpacity: 0.1,
+      opacity: 0.95,
+      lineCap: "round",
+      lineJoin: "round"
+    };
+  }
+
+  return {
+    color: "#2563eb",
+    weight: 1,
+    fillColor: "#3b82f6",
+    fillOpacity: 0.1,
+    opacity: 0.95,
+    lineCap: "round",
+    lineJoin: "round"
+  };
 };
 
-// Automatically fits to dataset bounds on initial load and flies to selected parcel
-function MapViewController({ selectedUlpIn, geoJsonRef, geoData, isInitialFitDone, setIsInitialFitDone }) {
+/**
+ * Imperative Cadastre Vector Layer
+ *
+ * 1. Initializes a persistent L.geoJSON instance on the Leaflet Canvas engine.
+ * 2. Uses a Set to track rendered ULPINs for client-side spatial deduplication.
+ * 3. Injects only newly discovered polygons via layerRef.current.addData() without DOM thrashing.
+ * 4. Manages hover, theme adaptation, and selection in O(1) time without unmounting or re-rendering existing vectors.
+ */
+function ImperativeCadastreLayer({
+  selectedUlpIn,
+  onParcelSelect,
+  refreshKey,
+  onZoomChange,
+  geoJsonRef,
+  isDark = true
+}) {
+  const map = useMap();
+  const renderedUlpinsRef = useRef(new Set());
+  const ulpinLayerMapRef = useRef(new Map());
+  const selectedUlpInRef = useRef(selectedUlpIn);
+  const isDarkRef = useRef(isDark);
+  const debounceTimerRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const prevSelectedUlpinRef = useRef(null);
+
+  // Sync isDark and selected ULPIN refs
+  useEffect(() => {
+    isDarkRef.current = isDark;
+  }, [isDark]);
+
+  // Sync selected ULPIN ref for event listeners
+  useEffect(() => {
+    selectedUlpInRef.current = selectedUlpIn;
+  }, [selectedUlpIn]);
+
+  // Viewport fetcher with BBox query & spatial deduplication
+  const fetchViewportParcels = useCallback(() => {
+    const zoom = map.getZoom();
+    onZoomChange(zoom);
+
+    // Zoom-gating: only load parcels at street scale (>= 15)
+    if (zoom < MIN_CADASTRE_ZOOM) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const bounds = map.getBounds();
+        const bboxString = bounds.toBBoxString(); // minLng,minLat,maxLng,maxLat
+
+        const res = await fetch(`/api/parcels?bbox=${bboxString}&t=${Date.now()}`, {
+          signal: abortControllerRef.current.signal
+        });
+
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // SPATIAL DEDUPLICATION / CACHING:
+        const rawFeatures = Array.isArray(data?.features)
+          ? data.features
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        const newFeatures = rawFeatures.filter((feat) => {
+          const ulpin = feat?.properties?.ulpin || feat?.ulpin;
+          if (!ulpin || renderedUlpinsRef.current?.has(ulpin)) {
+            return false;
+          }
+          renderedUlpinsRef.current.add(ulpin);
+          return true;
+        });
+
+        // Imperatively stream new polygons into existing canvas without unmounting
+        if (newFeatures.length > 0 && geoJsonRef.current && typeof geoJsonRef.current.addData === "function") {
+          geoJsonRef.current.addData({
+            type: "FeatureCollection",
+            features: newFeatures
+          });
+        }
+      } catch (err) {
+        if (err?.name !== "AbortError") {
+          console.warn("Spatial BBox fetch notice:", err?.message || err);
+        }
+      }
+    }, 250);
+  }, [map, onZoomChange, geoJsonRef]);
+
+  // Map viewport events
+  useMapEvents({
+    moveend: fetchViewportParcels,
+    zoomend: fetchViewportParcels
+  });
+
+  // Initialize imperative L.geoJSON layer
+  useEffect(() => {
+    const layer = L.geoJSON(null, {
+      style: (feature) => {
+        const isSelected = feature?.properties?.ulpin === selectedUlpInRef.current;
+        return getParcelStyle(feature, isSelected, isDarkRef.current);
+      },
+      onEachFeature: (feature, l) => {
+        const ulpin = feature.properties?.ulpin;
+        if (!ulpin) return;
+
+        ulpinLayerMapRef.current.set(ulpin, l);
+
+        // Lightweight tooltip on hover with high contrast
+        l.bindTooltip(ulpin, {
+          sticky: true,
+          direction: "auto",
+          className: "custom-gis-tooltip"
+        });
+
+        l.on({
+          click: async () => {
+            if (!ulpin) return;
+
+            // 1. Trigger loading skeleton immediately in ParcelPanel
+            if (onParcelSelect) {
+              onParcelSelect(ulpin, null, true);
+            }
+
+            try {
+              // 2. Fetch full parcel metadata from hydration endpoint
+              const res = await fetch(`/api/parcels/${encodeURIComponent(ulpin)}`);
+              if (res.ok) {
+                const data = await res.json();
+                const parcelData = data.data || data;
+                // 3. Populate sidebar with real owner, zoning & tax metadata
+                if (onParcelSelect) {
+                  onParcelSelect(ulpin, parcelData, false);
+                }
+              } else {
+                if (onParcelSelect) {
+                  onParcelSelect(ulpin, null, false);
+                }
+              }
+            } catch (err) {
+              console.error("Error hydrating parcel metadata on click:", err);
+              if (onParcelSelect) {
+                onParcelSelect(ulpin, null, false);
+              }
+            }
+          },
+          mouseover: () => {
+            if (selectedUlpInRef.current !== ulpin) {
+              l.setStyle({
+                color: "#10b981",
+                weight: 2,
+                fillColor: "#10b981",
+                fillOpacity: 0.3
+              });
+            }
+          },
+          mouseout: () => {
+            if (selectedUlpInRef.current !== ulpin) {
+              l.setStyle(getParcelStyle(feature, false, isDarkRef.current));
+            }
+          }
+        });
+      }
+    });
+
+    layer.addTo(map);
+    geoJsonRef.current = layer;
+
+    // Initial viewport query
+    fetchViewportParcels();
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+      geoJsonRef.current = null;
+      renderedUlpinsRef.current.clear();
+      ulpinLayerMapRef.current.clear();
+    };
+  }, [map, onParcelSelect, fetchViewportParcels, geoJsonRef]);
+
+  // Dynamically re-style all polygons when user toggles Light/Dark mode
+  useEffect(() => {
+    if (geoJsonRef.current && typeof geoJsonRef.current.setStyle === "function") {
+      geoJsonRef.current.setStyle((feature) => {
+        const isSelected = (feature?.properties?.ulpin || feature?.ulpin) === selectedUlpInRef.current;
+        return getParcelStyle(feature, isSelected, isDark);
+      });
+    }
+  }, [isDark, geoJsonRef]);
+
+  // O(1) Selection Restyling without re-rendering or unmounting the layer
+  useEffect(() => {
+    const prevUlpin = prevSelectedUlpinRef.current;
+    if (prevUlpin && prevUlpin !== selectedUlpIn && ulpinLayerMapRef.current.has(prevUlpin)) {
+      const prevLayer = ulpinLayerMapRef.current.get(prevUlpin);
+      prevLayer.setStyle(getParcelStyle(prevLayer.feature, false, isDark));
+    }
+
+    if (selectedUlpIn && ulpinLayerMapRef.current.has(selectedUlpIn)) {
+      const curLayer = ulpinLayerMapRef.current.get(selectedUlpIn);
+      curLayer.setStyle(getParcelStyle(curLayer.feature, true, isDark));
+      curLayer.bringToFront();
+    }
+
+    prevSelectedUlpinRef.current = selectedUlpIn;
+  }, [selectedUlpIn, isDark]);
+
+  // Handle explicit cache invalidation / refreshKey (e.g., after mutation or reset)
+  useEffect(() => {
+    if (refreshKey > 0 && geoJsonRef.current) {
+      geoJsonRef.current.clearLayers();
+      renderedUlpinsRef.current.clear();
+      ulpinLayerMapRef.current.clear();
+      fetchViewportParcels();
+    }
+  }, [refreshKey, fetchViewportParcels, geoJsonRef]);
+
+  return null;
+}
+
+/**
+ * MapViewController: Handles container resizing, camera fly-to with safe zoom clamping, and external centroid flyTo
+ */
+function MapViewController({ selectedUlpIn, geoJsonRef, onMapReady }) {
   const map = useMap();
 
-  // Initial fit to bounds when GeoJSON loads
+  // Expose map reference and register global gis:flyTo event listener
   useEffect(() => {
-    if (!geoJsonRef.current || !geoData || isInitialFitDone) return;
-    try {
-      const bounds = geoJsonRef.current.getBounds();
-      if (bounds && bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
-        setIsInitialFitDone(true);
-      }
-    } catch (err) {
-      console.warn("Could not fit initial map bounds:", err);
-    }
-  }, [geoData, map, geoJsonRef, isInitialFitDone, setIsInitialFitDone]);
+    window.gisMap = map;
+    if (onMapReady) onMapReady(map);
 
-  // Ensure map recalculates container dimensions on mount or resize
-  useEffect(() => {
-    const handleResize = () => {
-      map.invalidateSize();
+    const handleFlyTo = (e) => {
+      const { lat, lng, zoom = 18, duration = 1.5 } = e.detail || {};
+      if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+        const maxAllowedZoom = map.getMaxZoom() || 18;
+        const safeZoom = Math.min(zoom, maxAllowedZoom);
+        map.flyTo([lat, lng], safeZoom, {
+          duration,
+          easeLinearity: 0.25
+        });
+      }
     };
+
+    window.addEventListener("gis:flyTo", handleFlyTo);
+    return () => {
+      window.removeEventListener("gis:flyTo", handleFlyTo);
+      if (window.gisMap === map) window.gisMap = null;
+    };
+  }, [map, onMapReady]);
+
+  useEffect(() => {
+    const handleResize = () => map.invalidateSize();
     window.addEventListener("resize", handleResize);
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    const timer = setTimeout(() => map.invalidateSize(), 200);
     return () => {
       window.removeEventListener("resize", handleResize);
       clearTimeout(timer);
     };
   }, [map]);
 
-  // Fly to selected parcel when selectedUlpIn changes
   useEffect(() => {
-    if (!selectedUlpIn || !geoJsonRef.current) return;
+    if (!selectedUlpIn || !geoJsonRef.current || typeof geoJsonRef.current.eachLayer !== "function") return;
 
-    geoJsonRef.current.eachLayer((layer) => {
-      if (layer.feature?.properties?.ulpin === selectedUlpIn) {
-        if (layer.getBounds && typeof layer.getBounds === "function") {
-          const bounds = layer.getBounds();
-          if (bounds.isValid()) {
-            const isMobile = window.innerWidth < 768;
-            map.flyToBounds(bounds, {
-              maxZoom: 18,
-              duration: 0.9,
-              paddingTopLeft: [40, 40],
-              paddingBottomRight: isMobile ? [40, 240] : [40, 40]
-            });
+    try {
+      geoJsonRef.current.eachLayer((layer) => {
+        const featureUlpin = layer?.feature?.properties?.ulpin || layer?.feature?.ulpin;
+        if (featureUlpin === selectedUlpIn) {
+          if (layer?.getBounds && typeof layer.getBounds === "function") {
+            const bounds = layer.getBounds();
+            if (bounds && typeof bounds.isValid === "function" && bounds.isValid()) {
+              const isMobile = window.innerWidth < 768;
+              map.flyToBounds(bounds, {
+                maxZoom: 18,
+                duration: 1.2,
+                easeLinearity: 0.25,
+                paddingTopLeft: [40, 40],
+                paddingBottomRight: isMobile ? [40, 240] : [420, 40]
+              });
+            }
           }
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.warn("MapViewController flyToBounds notice:", err);
+    }
   }, [selectedUlpIn, map, geoJsonRef]);
 
   return null;
 }
 
-function MapDashboard({ selectedUlpIn, onParcelSelect }) {
+function MapDashboard({
+  selectedUlpIn,
+  selectedParcel,
+  onParcelSelect,
+  setSelectedParcel,
+  onMapReady,
+  refreshKey = 0,
+  refreshCurrentParcel: externalRefreshCurrentParcel
+}) {
+  const { isDark } = useTheme();
   const geoJsonRef = useRef(null);
-  const [geoData, setGeoData] = useState(null);
-  const [baseMap, setBaseMap] = useState("streets"); // "streets" | "satellite" | "topographic"
-  const [isInitialFitDone, setIsInitialFitDone] = useState(false);
+  const [mapInstance, setMapInstance] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(16);
+  const [baseMap, setBaseMap] = useState("streets");
 
-  // Fetch local GeoJSON dataset
-  useEffect(() => {
-    fetch("/parcels.json")
-      .then((res) => res.json())
-      .then((data) => setGeoData(data))
-      .catch((err) => console.error("Could not load parcels:", err));
+  const basemapConfigs = GET_BASEMAP_CONFIGS(isDark);
+  const activeBasemap = basemapConfigs[baseMap] || basemapConfigs.streets;
+
+  const handleZoomChange = useCallback((zoom) => {
+    setCurrentZoom(zoom);
   }, []);
 
-  const activeBasemap = BASEMAP_CONFIGS[baseMap] || BASEMAP_CONFIGS.streets;
+  const handleMapReady = useCallback((map) => {
+    setMapInstance(map);
+    if (onMapReady) onMapReady(map);
+  }, [onMapReady]);
 
-  /**
-   * Dynamic GeoJSON style function:
-   * 1. Unselected polygons: default transparent blue fill (fillColor: '#3b82f6', fillOpacity: 0.4) and a thin border (weight: 1).
-   * 2. Selected polygon: bright amber/yellow (fillColor: '#f59e0b', fillOpacity: 0.8) with matching solid border (weight: 2).
-   * 3. Absolutely NO square bounding boxes or rectangular outlines are drawn; the style applies strictly to the organic polygon path.
-   */
-  const getParcelStyle = (feature) => {
-    const isSelected = feature?.properties?.ulpin === selectedUlpIn;
-
-    if (isSelected) {
-      return {
-        fillColor: "#f59e0b",
-        fillOpacity: 0.8,
-        color: "#f59e0b",
-        weight: 2,
-        opacity: 1,
-        lineCap: "round",
-        lineJoin: "round"
-      };
-    }
-
-    return {
-      fillColor: "#3b82f6",
-      fillOpacity: 0.4,
-      color: "#2563eb",
-      weight: 1,
-      opacity: 0.85,
-      lineCap: "round",
-      lineJoin: "round"
-    };
-  };
-
-  const handleEachFeature = (feature, layer) => {
-    const props = feature.properties || {};
-    const ulpin = props.ulpin;
-    const ownerName = props.ownerName ? ` | ${props.ownerName}` : "";
-    const khasra = props.khasraNumber ? ` (Khasra ${props.khasraNumber})` : "";
-
-    layer.bindTooltip(`ULPIN: ${ulpin}${ownerName}${khasra}`, { sticky: true });
-
-    layer.on({
-      click: () => {
-        onParcelSelect(ulpin);
-      },
-      mouseover: () => {
-        if (selectedUlpIn !== ulpin) {
-          layer.setStyle({
-            fillColor: "#60a5fa",
-            fillOpacity: 0.6,
-            color: "#1d4ed8",
-            weight: 1.5
-          });
-        }
-      },
-      mouseout: () => {
-        if (selectedUlpIn !== ulpin) {
-          layer.setStyle(getParcelStyle(feature));
-        }
+  // Auto-Refresh Callback: Re-hydrates current parcel from backend and updates sidebar state
+  const refreshCurrentParcel = useCallback(
+    async (targetUlpin) => {
+      if (typeof externalRefreshCurrentParcel === "function") {
+        return await externalRefreshCurrentParcel(targetUlpin);
       }
-    });
-  };
+
+      const currentUlpin =
+        targetUlpin ||
+        selectedUlpIn ||
+        (selectedParcel && (selectedParcel.ulpin || selectedParcel.id));
+
+      if (!currentUlpin) {
+        console.warn("refreshCurrentParcel: No active ULPIN found to refresh.");
+        return null;
+      }
+
+      try {
+        const cleanUlpin = String(currentUlpin).replace(/[^a-zA-Z0-9]/g, "").trim();
+        const res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+        if (!res.ok) {
+          throw new Error(`Failed to refresh parcel data: HTTP ${res.status}`);
+        }
+        const json = await res.json();
+        const newData = json.data || json;
+
+        if (typeof setSelectedParcel === "function") {
+          setSelectedParcel(newData);
+        }
+        if (typeof onParcelSelect === "function") {
+          onParcelSelect(newData.ulpin || cleanUlpin, newData, false);
+        }
+
+        return newData;
+      } catch (err) {
+        console.error("Auto-refresh current parcel error:", err);
+        return null;
+      }
+    },
+    [externalRefreshCurrentParcel, selectedUlpIn, selectedParcel, setSelectedParcel, onParcelSelect]
+  );
+
+  // Expose to window for global access if needed
+  useEffect(() => {
+    window.gisRefreshCurrentParcel = refreshCurrentParcel;
+    return () => {
+      if (window.gisRefreshCurrentParcel === refreshCurrentParcel) {
+        delete window.gisRefreshCurrentParcel;
+      }
+    };
+  }, [refreshCurrentParcel]);
 
   return (
     <div className="relative h-full w-full">
-      {/* 3-Option Basemap Control Panel in Top-Right Corner */}
-      <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-[1000] flex items-center rounded-xl border border-slate-200/90 bg-white/95 p-0.5 sm:p-1 shadow-lg backdrop-blur-md transition hover:shadow-xl">
-        <span className="hidden md:inline-block px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Basemap
-        </span>
-
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          {/* 1. Streets (OpenStreetMap) */}
-          <button
-            type="button"
-            id="basemap-streets-btn"
-            onClick={() => setBaseMap("streets")}
-            title="OpenStreetMap Standard (Street View)"
-            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
-              baseMap === "streets"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      {/* 1. Zoom Gatekeeping Banner with Interactive Direct "Zoom to Cadastre" CTA */}
+      {currentZoom < MIN_CADASTRE_ZOOM && (
+        <div className="absolute top-14 sm:top-[68px] left-1/2 -translate-x-1/2 z-[1000] transition-all duration-300">
+          <div
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-none border shadow-2xl backdrop-blur-md text-xs sm:text-sm font-medium transition duration-300 ${
+              isDark
+                ? "bg-neutral-950/80 border-neutral-800 text-white"
+                : "bg-white/80 border-gray-300 text-black"
             }`}
           >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <span>Streets</span>
-          </button>
-
-          {/* 2. Satellite (Esri World Imagery) */}
-          <button
-            type="button"
-            id="basemap-satellite-btn"
-            onClick={() => setBaseMap("satellite")}
-            title="Esri World Imagery (High-Resolution Satellite)"
-            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
-              baseMap === "satellite"
-                ? "bg-slate-900 text-white shadow-sm ring-1 ring-slate-800"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Satellite</span>
-          </button>
-
-          {/* 3. Topographic (OpenTopoMap) */}
-          <button
-            type="button"
-            id="basemap-topographic-btn"
-            onClick={() => setBaseMap("topographic")}
-            title="OpenTopoMap (Topography & Contours)"
-            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
-              baseMap === "topographic"
-                ? "bg-emerald-700 text-white shadow-sm ring-1 ring-emerald-600"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span>Topo</span>
-          </button>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            <span className="hidden sm:inline font-mono uppercase text-xs tracking-wider">Zoom in closer for cadastre</span>
+            <span className="sm:hidden font-mono uppercase text-xs">Zoom in</span>
+            <span
+              className={`px-1.5 py-0.5 text-[10px] font-mono rounded-none border ${
+                isDark
+                  ? "bg-neutral-900 border-neutral-800 text-neutral-400"
+                  : "bg-neutral-100 border-gray-200 text-neutral-600"
+              }`}
+            >
+              L{currentZoom}/{MIN_CADASTRE_ZOOM}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const targetMap = mapInstance || window.gisMap;
+                if (targetMap) {
+                  targetMap.setZoom(MIN_CADASTRE_ZOOM);
+                }
+              }}
+              className="ml-1 bg-black text-white hover:bg-gray-800 dark:bg-transparent dark:border dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none px-3 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest cursor-pointer"
+              aria-label="Zoom directly to Cadastral Level 15"
+            >
+              Zoom In
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* 2. Floating Segmented Basemap Switcher */}
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-[1000]">
+        <LayerSwitcher currentLayer={baseMap} onLayerChange={setBaseMap} />
       </div>
 
-      {/* Main Leaflet Map Container */}
+      {/* 3. Main Leaflet Map Container with Canvas Engine (preferCanvas={true}) */}
       <MapContainer
-        center={[30.208, 74.457]}
+        center={[12.9250, 77.5850]}
         zoom={16}
         scrollWheelZoom
-        className="h-full w-full"
+        preferCanvas={true}
+        className={`h-full w-full ${isDark ? "dark-map-container" : ""}`}
       >
-        {/* Dynamic Tile Layer with unique key to guarantee clean layer remounting */}
         <TileLayer
-          key={activeBasemap.id}
+          key={`${activeBasemap.id}-${isDark ? "dark" : "light"}`}
           url={activeBasemap.url}
           attribution={activeBasemap.attribution}
           maxZoom={activeBasemap.maxZoom}
+          className={baseMap === "satellite" ? "" : isDark ? "dark-map-tiles" : ""}
         />
 
-        {/* View controller to manage fitBounds and flyToBounds */}
+        {/* Imperative Cadastre Vector Layer (BBox stream, Deduplication & Canvas injection) */}
+        <ImperativeCadastreLayer
+          selectedUlpIn={selectedUlpIn}
+          onParcelSelect={onParcelSelect}
+          refreshKey={refreshKey}
+          onZoomChange={handleZoomChange}
+          geoJsonRef={geoJsonRef}
+          isDark={isDark}
+        />
+
+        {/* View controller to manage flyToBounds & resize invalidation */}
         <MapViewController
           selectedUlpIn={selectedUlpIn}
           geoJsonRef={geoJsonRef}
-          geoData={geoData}
-          isInitialFitDone={isInitialFitDone}
-          setIsInitialFitDone={setIsInitialFitDone}
+          onMapReady={handleMapReady}
         />
-
-        {/* Vector GeoJSON Polygon Overlays */}
-        {geoData && (
-          <GeoJSON
-            key={`${baseMap}-${selectedUlpIn}`}
-            ref={geoJsonRef}
-            data={geoData}
-            style={getParcelStyle}
-            onEachFeature={handleEachFeature}
-          />
-        )}
       </MapContainer>
     </div>
   );
