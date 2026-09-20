@@ -20,26 +20,33 @@ export default async function handler(req, res) {
   try {
     const sql = `
       SELECT 
-        id,
-        ulpin,
-        owner_name,
-        pending_owner,
-        previous_owner,
-        mutation_status,
-        application_id,
-        transfer_reason,
-        khasra_no,
-        zone_type,
-        tax_status,
-        encumbrance,
-        area_sqm,
-        water_connection_id,
-        power_connection_id,
-        environmental_zone,
-        ST_Y(ST_Centroid(geom)) AS lat,
-        ST_X(ST_Centroid(geom)) AS lng
-      FROM parcels
-      WHERE UPPER(TRIM(ulpin)) = UPPER($1)
+        p.id,
+        p.ulpin,
+        p.owner_name,
+        p.previous_owner,
+        p.khasra_no,
+        p.zone_type,
+        p.tax_status,
+        p.encumbrance,
+        p.area_sqm,
+        p.water_connection_id,
+        p.power_connection_id,
+        p.environmental_zone,
+        ST_Y(ST_Centroid(p.geom)) AS lat,
+        ST_X(ST_Centroid(p.geom)) AS lng,
+        COALESCE(m.status, CASE WHEN UPPER(p.mutation_status) = 'PENDING' THEN 'Approved' ELSE p.mutation_status END, 'Approved') AS mutation_status,
+        m.buyer_name AS pending_owner,
+        m.application_id,
+        m.transfer_reason
+      FROM parcels p
+      LEFT JOIN LATERAL (
+        SELECT id, buyer_name, application_id, transfer_reason, status
+        FROM mutations
+        WHERE ulpin = p.ulpin AND UPPER(status) = 'PENDING'
+        ORDER BY created_at DESC
+        LIMIT 1
+      ) m ON true
+      WHERE UPPER(TRIM(p.ulpin)) = UPPER($1)
       LIMIT 1;
     `;
 

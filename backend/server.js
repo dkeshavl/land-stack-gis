@@ -330,39 +330,67 @@ app.post("/api/mutation/apply", async (req, res) => {
 
   const cleanUlpin = ulpin.trim().toUpperCase().replace(/[^a-zA-Z0-9]/g, "");
   const applicationId = `MUT-${Date.now().toString().slice(-6)}`;
+  const buyerName = newOwnerName.trim();
 
-  let currentOwner = "Registered Landholder";
+  let currentOwner = "Data Unavailable";
+  let client;
 
   try {
-    // 1. Check current legal owner so title is NOT prematurely changed before approval
-    const checkRes = await db.query(
-      "SELECT owner_name FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1",
+    const { pool } = db;
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    // 1. Fetch current legal owner so title is NOT prematurely changed before approval
+    const checkRes = await client.query(
+      "SELECT owner_name FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1 FOR UPDATE",
       [cleanUlpin]
     );
     if (checkRes.rows.length > 0 && checkRes.rows[0].owner_name) {
       currentOwner = checkRes.rows[0].owner_name;
     }
 
-    // 2. Queue mutation in PostGIS: keep owner_name intact, set pending_owner & mutation_status = 'Pending'
-    await db.query(
+    // 2. Insert into mutations table with status = 'PENDING'
+    const mutRes = await client.query(
+      `INSERT INTO mutations (ulpin, buyer_name, previous_owner, transfer_reason, document_name, application_id, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', NOW())
+       RETURNING id`,
+      [
+        cleanUlpin,
+        buyerName,
+        currentOwner,
+        transferReason || "Sale Deed",
+        documentName || "Registered_Deed.pdf",
+        applicationId
+      ]
+    );
+    const mutationId = mutRes.rows[0]?.id ? String(mutRes.rows[0].id) : null;
+
+    // 3. Queue mutation in PostGIS: keep owner_name intact, set pending_owner, active_mutation_id & mutation_status = 'Pending'
+    await client.query(
       `UPDATE parcels 
        SET pending_owner = $1, 
            mutation_status = 'Pending', 
-           application_id = $2, 
-           transfer_reason = $3, 
+           active_mutation_id = $2,
+           application_id = $3, 
+           transfer_reason = $4, 
            updated_at = NOW() 
-       WHERE UPPER(TRIM(ulpin)) = UPPER($4)`,
-      [newOwnerName.trim(), applicationId, transferReason || "Sale Deed", cleanUlpin]
+       WHERE UPPER(TRIM(ulpin)) = UPPER($5)`,
+      [buyerName, mutationId, applicationId, transferReason || "Sale Deed", cleanUlpin]
     );
+
+    await client.query("COMMIT");
   } catch (dbErr) {
-    console.warn("PostGIS mutation apply DB update warning:", dbErr.message);
+    if (client) await client.query("ROLLBACK");
+    console.warn("PostGIS mutation apply DB transaction warning:", dbErr.message);
+  } finally {
+    if (client) client.release();
   }
 
   if (mockData[cleanUlpin]) {
     const parcel = mockData[cleanUlpin];
     if (!parcel.ownership) parcel.ownership = {};
 
-    parcel.ownership.pendingNewOwner = newOwnerName.trim();
+    parcel.ownership.pendingNewOwner = buyerName;
     parcel.ownership.mutationStatus = "Pending";
     parcel.ownership.applicationId = applicationId;
     parcel.ownership.transferReason = transferReason || "Sale Deed";
@@ -374,7 +402,7 @@ app.post("/api/mutation/apply", async (req, res) => {
     recordAuditLog({
       action: "CITIZEN_APPLIED",
       role: "Citizen Portal",
-      user: newOwnerName.trim(),
+      user: buyerName,
       ulpin: cleanUlpin,
       details: `Filed transfer application (${transferReason || "Sale Deed"}) for ULPIN ${cleanUlpin}. App ID: ${applicationId}.`,
       ip: req.ip || "127.0.0.1",
@@ -395,7 +423,7 @@ app.post("/api/mutation/apply", async (req, res) => {
   mockData[cleanUlpin] = {
     ownership: {
       ownerName: currentOwner,
-      pendingNewOwner: newOwnerName.trim(),
+      pendingNewOwner: buyerName,
       khasraNumber: `${Math.floor(Math.random() * 50) + 1}/${Math.floor(Math.random() * 5) + 1}`,
       mutationStatus: "Pending",
       applicationId,
@@ -432,7 +460,7 @@ app.post("/api/mutation/apply", async (req, res) => {
   recordAuditLog({
     action: "CITIZEN_APPLIED",
     role: "Citizen Portal",
-    user: newOwnerName.trim(),
+    user: buyerName,
     ulpin: cleanUlpin,
     details: `Filed transfer application for ULPIN ${cleanUlpin}. App ID: ${applicationId}.`,
     ip: req.ip || "127.0.0.1",
@@ -451,150 +479,260 @@ app.post("/api/mutation/apply", async (req, res) => {
 
 /**
  * Shared Mutation Approval Handler
- * Updates BOTH PostGIS database and local shared cache
+ * Updates BOTH PostGIS database and local shared cache via strict SQL Transaction
  */
 async function handleMutationApproval(req, res) {
-  const { ulpin } = req.params;
+  const ulpin = req.params.ulpin || req.body?.ulpin;
   const cleanUlpin = (ulpin || "").replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
+  const reviewer = (req.body?.reviewedBy || "Shri R. K. Verma (Tahsildar)").trim();
+  const mutationId = req.body?.id || req.body?.mutationId;
 
-  const parcel = mockData[cleanUlpin] || {};
-  let targetOwner = "";
-
-  if (parcel.ownership?.pendingNewOwner) {
-    parcel.ownership.previousOwner = parcel.ownership.ownerName;
-    parcel.ownership.ownerName = parcel.ownership.pendingNewOwner;
-    targetOwner = parcel.ownership.pendingNewOwner;
-    delete parcel.ownership.pendingNewOwner;
-  } else if (req.body?.newOwnerName) {
-    targetOwner = req.body.newOwnerName.trim();
-    if (!parcel.ownership) parcel.ownership = {};
-    parcel.ownership.previousOwner = parcel.ownership.ownerName;
-    parcel.ownership.ownerName = targetOwner;
-  } else if (parcel.ownership?.ownerName) {
-    targetOwner = parcel.ownership.ownerName;
-  } else {
-    targetOwner = "Verified Landholder";
+  if (!cleanUlpin && !mutationId) {
+    return res.status(400).json({ success: false, message: "ULPIN or Mutation ID is required." });
   }
 
-  if (parcel.ownership) {
-    parcel.ownership.mutationStatus = "Approved";
-    parcel.ownership.approvedAt = new Date().toISOString();
-  }
-
-  // 1. UPDATE POSTGIS DATABASE (Legal Title Transfer upon Approval)
+  let client;
   try {
-    await db.query(
+    const { pool } = db;
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    // 1. Fetch active pending mutation record
+    let mutRes;
+    if (mutationId) {
+      mutRes = await client.query(
+        `SELECT id, ulpin, buyer_name, previous_owner 
+         FROM mutations 
+         WHERE id = $1 AND UPPER(status) = 'PENDING' 
+         FOR UPDATE`,
+        [mutationId]
+      );
+    } else {
+      mutRes = await client.query(
+        `SELECT id, ulpin, buyer_name, previous_owner 
+         FROM mutations 
+         WHERE UPPER(TRIM(ulpin)) = UPPER($1) AND UPPER(status) = 'PENDING' 
+         ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+        [cleanUlpin]
+      );
+    }
+
+    const targetUlpin = cleanUlpin || (mutRes.rows[0]?.ulpin ? String(mutRes.rows[0].ulpin).trim().toUpperCase() : "");
+
+    // 2. Fetch current parcel title
+    const parcelRes = await client.query(
+      "SELECT owner_name, pending_owner FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1 FOR UPDATE",
+      [targetUlpin]
+    );
+
+    const currentLegalOwner = parcelRes.rows[0]?.owner_name || mockData[targetUlpin]?.ownership?.ownerName || "Data Unavailable";
+    const targetOwner = (
+      req.body?.newOwnerName ||
+      mutRes.rows[0]?.buyer_name ||
+      parcelRes.rows[0]?.pending_owner ||
+      mockData[targetUlpin]?.ownership?.pendingNewOwner ||
+      ""
+    ).trim();
+
+    if (!targetOwner || targetOwner.toUpperCase() === "ADD") {
+      const fallbackBuyer = (mutRes.rows[0]?.buyer_name || "").trim();
+      if (!fallbackBuyer && !targetOwner) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ success: false, message: "Valid transferee/buyer name is required for approval." });
+      }
+    }
+
+    const resolvedOwner = (targetOwner && targetOwner.toUpperCase() !== "ADD") ? targetOwner : (mutRes.rows[0]?.buyer_name || targetOwner);
+
+    // Action 1: UPDATE mutations SET status = 'APPROVED' WHERE id = $1;
+    const activeMutId = mutationId || mutRes.rows[0]?.id;
+    if (activeMutId) {
+      await client.query(
+        `UPDATE mutations 
+         SET status = 'APPROVED', 
+             reviewed_at = NOW(), 
+             reviewed_by = $1 
+         WHERE id = $2`,
+        [reviewer, activeMutId]
+      );
+    } else {
+      await client.query(
+        `UPDATE mutations 
+         SET status = 'APPROVED', 
+             reviewed_at = NOW(), 
+             reviewed_by = $1 
+         WHERE UPPER(TRIM(ulpin)) = UPPER($2) AND UPPER(status) = 'PENDING'`,
+        [reviewer, targetUlpin]
+      );
+    }
+
+    // Action 2: UPDATE parcels SET owner_name = $2, previous_owner = owner_name, active_mutation_id = NULL WHERE ulpin = $3;
+    await client.query(
       `UPDATE parcels 
-       SET previous_owner = owner_name,
+       SET previous_owner = owner_name, 
            owner_name = $1, 
-           pending_owner = NULL,
-           mutation_status = 'Approved',
+           pending_owner = NULL, 
+           active_mutation_id = NULL,
+           mutation_status = 'Approved', 
            updated_at = NOW() 
        WHERE UPPER(TRIM(ulpin)) = UPPER($2)`,
-      [targetOwner, cleanUlpin]
+      [resolvedOwner, targetUlpin]
     );
-    console.log(`✅ PostGIS database updated: ULPIN ${cleanUlpin} title legally transferred to "${targetOwner}"`);
-  } catch (dbErr) {
-    console.warn("PostGIS update during approval:", dbErr.message);
-  }
 
-  // 2. Sync to public/parcels.json so GIS map tiles & hover data update
-  updateParcelsJsonFile(cleanUlpin, targetOwner, "Approved");
+    await client.query("COMMIT");
 
-  // 3. Record official audit trail
-  recordAuditLog({
-    action: "MUTATION_APPROVED",
-    role: "Revenue Officer (Tahsildar)",
-    user: "tahsildar@revenue.gov.in",
-    ulpin: cleanUlpin,
-    details: `Approved land mutation for ULPIN ${cleanUlpin}. Title transferred to ${targetOwner}.`,
-    ip: req.ip || "127.0.0.1",
-    status: "APPROVED_FINAL",
-    statusCode: 200
-  });
-
-  return res.json({
-    success: true,
-    message: `Mutation for parcel ${cleanUlpin} approved successfully`,
-    ulpin: cleanUlpin,
-    data: {
-      ulpin: cleanUlpin,
-      ...parcel,
-      ownerName: targetOwner,
-      mutationStatus: "Approved"
+    // Sync mockData and parcels.json
+    if (mockData[targetUlpin]) {
+      if (!mockData[targetUlpin].ownership) mockData[targetUlpin].ownership = {};
+      mockData[targetUlpin].ownership.previousOwner = currentLegalOwner;
+      mockData[targetUlpin].ownership.ownerName = resolvedOwner;
+      mockData[targetUlpin].ownership.mutationStatus = "Approved";
+      mockData[targetUlpin].ownership.approvedAt = new Date().toISOString();
+      delete mockData[targetUlpin].ownership.pendingNewOwner;
     }
-  });
+    updateParcelsJsonFile(targetUlpin, resolvedOwner, "Approved");
+
+    recordAuditLog({
+      action: "MUTATION_APPROVED",
+      role: "Revenue Officer (Tahsildar)",
+      user: reviewer,
+      ulpin: targetUlpin,
+      details: `Approved land mutation for ULPIN ${targetUlpin}. Title transferred to ${resolvedOwner}.`,
+      ip: req.ip || "127.0.0.1",
+      status: "APPROVED_FINAL",
+      statusCode: 200
+    });
+
+    return res.json({
+      success: true,
+      message: `Mutation for parcel ${targetUlpin} approved successfully`,
+      ulpin: targetUlpin,
+      data: {
+        ulpin: targetUlpin,
+        ownerName: resolvedOwner,
+        previousOwner: currentLegalOwner,
+        mutationStatus: "Approved"
+      }
+    });
+  } catch (err) {
+    if (client) await client.query("ROLLBACK");
+    console.error("Mutation approval transaction failure:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (client) client.release();
+  }
 }
 
 /**
  * Shared Mutation Rejection Handler
- * Reverts owner to previousOwner, sets status to Rejected in PostGIS & cache
+ * Sets status to Rejected in PostGIS & cache via strict SQL Transaction
  */
 async function handleMutationRejection(req, res) {
-  const { ulpin } = req.params;
+  const ulpin = req.params.ulpin || req.body?.ulpin;
   const cleanUlpin = (ulpin || "").replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
+  const reviewer = (req.body?.reviewedBy || "Shri R. K. Verma (Tahsildar)").trim();
+  const mutationId = req.body?.id || req.body?.mutationId;
 
-  const parcel = mockData[cleanUlpin] || {};
-  const previousOwner = parcel.ownership?.previousOwner || parcel.ownership?.ownerName || "Arjun Reddy";
-  const rejectedApplicant = parcel.ownership?.pendingNewOwner || "Applicant";
+  if (!cleanUlpin && !mutationId) {
+    return res.status(400).json({ success: false, message: "ULPIN or Mutation ID is required." });
+  }
 
-  if (!mockData[cleanUlpin]) mockData[cleanUlpin] = {};
-  if (!mockData[cleanUlpin].ownership) mockData[cleanUlpin].ownership = {};
-
-  mockData[cleanUlpin].ownership.ownerName = previousOwner;
-  mockData[cleanUlpin].ownership.previousOwner = previousOwner;
-  mockData[cleanUlpin].ownership.mutationStatus = "Rejected";
-  mockData[cleanUlpin].ownership.rejectedAt = new Date().toISOString();
-  delete mockData[cleanUlpin].ownership.pendingNewOwner;
-
-  // 1. REVERT POSTGIS DATABASE: clear pending_owner and set mutation_status = 'Rejected'
+  let client;
   try {
-    await db.query(
+    const { pool } = db;
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    // 1. Fetch current legal owner
+    const parcelRes = await client.query(
+      "SELECT owner_name FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1 FOR UPDATE",
+      [cleanUlpin]
+    );
+    const legalOwner = parcelRes.rows[0]?.owner_name || mockData[cleanUlpin]?.ownership?.ownerName || "Data Unavailable";
+
+    // Action 1: Mark active mutation as REJECTED in mutations table
+    const activeMutId = mutationId;
+    if (activeMutId) {
+      await client.query(
+        `UPDATE mutations 
+         SET status = 'REJECTED', 
+             reviewed_at = NOW(), 
+             reviewed_by = $1 
+         WHERE id = $2`,
+        [reviewer, activeMutId]
+      );
+    } else {
+      await client.query(
+        `UPDATE mutations 
+         SET status = 'REJECTED', 
+             reviewed_at = NOW(), 
+             reviewed_by = $1 
+         WHERE UPPER(TRIM(ulpin)) = UPPER($2) AND UPPER(status) = 'PENDING'`,
+        [reviewer, cleanUlpin]
+      );
+    }
+
+    // Action 2: Clear pending_owner and active_mutation_id on parcels, mark Rejected, keep legal owner intact
+    await client.query(
       `UPDATE parcels 
        SET pending_owner = NULL, 
+           active_mutation_id = NULL, 
            mutation_status = 'Rejected', 
            updated_at = NOW() 
        WHERE UPPER(TRIM(ulpin)) = UPPER($1)`,
       [cleanUlpin]
     );
-    console.log(`❌ PostGIS mutation rejected: ULPIN ${cleanUlpin} title retained for "${previousOwner}"`);
-  } catch (dbErr) {
-    console.warn("PostGIS update during rejection:", dbErr.message);
-  }
 
-  // 2. Sync to public/parcels.json
-  updateParcelsJsonFile(cleanUlpin, previousOwner, "Rejected");
+    await client.query("COMMIT");
 
-  // 3. Record official audit trail
-  recordAuditLog({
-    action: "MUTATION_REJECTED",
-    role: "Revenue Officer (Tahsildar)",
-    user: "tahsildar@revenue.gov.in",
-    ulpin: cleanUlpin,
-    details: `Mutation application by ${rejectedApplicant} rejected for ULPIN ${cleanUlpin}. Ownership retained by ${previousOwner}.`,
-    ip: req.ip || "127.0.0.1",
-    status: "REJECTED_FINAL",
-    statusCode: 200
-  });
-
-  return res.json({
-    success: true,
-    message: `Mutation for parcel ${cleanUlpin} rejected successfully. Title retained by ${previousOwner}.`,
-    ulpin: cleanUlpin,
-    data: {
-      ulpin: cleanUlpin,
-      ...mockData[cleanUlpin],
-      ownerName: previousOwner,
-      mutationStatus: "Rejected"
+    if (mockData[cleanUlpin]) {
+      if (!mockData[cleanUlpin].ownership) mockData[cleanUlpin].ownership = {};
+      mockData[cleanUlpin].ownership.mutationStatus = "Rejected";
+      mockData[cleanUlpin].ownership.rejectedAt = new Date().toISOString();
+      delete mockData[cleanUlpin].ownership.pendingNewOwner;
     }
-  });
+    updateParcelsJsonFile(cleanUlpin, legalOwner, "Rejected");
+
+    recordAuditLog({
+      action: "MUTATION_REJECTED",
+      role: "Revenue Officer (Tahsildar)",
+      user: reviewer,
+      ulpin: cleanUlpin,
+      details: `Mutation rejected for ULPIN ${cleanUlpin}. Ownership retained by ${legalOwner}.`,
+      ip: req.ip || "127.0.0.1",
+      status: "REJECTED_FINAL",
+      statusCode: 200
+    });
+
+    return res.json({
+      success: true,
+      message: `Mutation for parcel ${cleanUlpin} rejected successfully. Title retained by ${legalOwner}.`,
+      ulpin: cleanUlpin,
+      data: {
+        ulpin: cleanUlpin,
+        ownerName: legalOwner,
+        mutationStatus: "Rejected"
+      }
+    });
+  } catch (err) {
+    if (client) await client.query("ROLLBACK");
+    console.error("Mutation rejection transaction failure:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (client) client.release();
+  }
 }
 
-// Support both singular and plural mutation approval and rejection routes
+// Support all mutation approval and rejection route variants
 app.post("/api/parcel/:ulpin/approve", handleMutationApproval);
 app.post("/api/parcels/:ulpin/approve", handleMutationApproval);
+app.post("/api/mutations/approve", handleMutationApproval);
+app.post("/api/mutation/approve", handleMutationApproval);
+
 app.post("/api/parcel/:ulpin/reject", handleMutationRejection);
 app.post("/api/parcels/:ulpin/reject", handleMutationRejection);
+app.post("/api/mutations/reject", handleMutationRejection);
+app.post("/api/mutation/reject", handleMutationRejection);
 
 // Mount main spatial cadastre router (supports both /api/parcels and /api/parcel seamlessly)
 app.use("/api/parcels", parcelsRouter);

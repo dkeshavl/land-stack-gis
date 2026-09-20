@@ -157,26 +157,44 @@ function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
   const handleReject = async (ulpin) => {
     setActionLoading((prev) => ({ ...prev, [ulpin]: "rejecting" }));
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setParcels((prev) =>
-        prev.map((item) =>
-          item.ulpin === ulpin
-            ? {
-              ...item,
-              ownership: {
-                ...item.ownership,
-                mutationStatus: "Rejected",
-                rejectedAt: new Date().toISOString()
+      let res = await fetch(`/api/parcel/${encodeURIComponent(ulpin)}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewedBy: "Shri R. K. Verma (Tahsildar)" })
+      });
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/mutations/reject`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ulpin, reviewedBy: "Shri R. K. Verma (Tahsildar)" })
+        });
+      }
+      const result = await res.json().catch(() => ({}));
+
+      if (res.ok && result.success) {
+        setParcels((prev) =>
+          prev.map((item) =>
+            item.ulpin === ulpin
+              ? {
+                ...item,
+                ownership: {
+                  ...item.ownership,
+                  pendingNewOwner: undefined,
+                  mutationStatus: "Rejected",
+                  rejectedAt: new Date().toISOString()
+                }
               }
-            }
-            : item
-        )
-      );
-      showToast(`Mutation rejected for ULPIN: ${ulpin}`, "error");
-      if (onMutationUpdated) onMutationUpdated();
+              : item
+          )
+        );
+        showToast(`Mutation rejected for ULPIN: ${ulpin}`, "error");
+        if (onMutationUpdated) onMutationUpdated();
+      } else {
+        throw new Error(result.message || "Failed to reject mutation");
+      }
     } catch (err) {
       console.error("Rejection error:", err);
-      showToast("Failed to reject mutation", "error");
+      showToast(err.message || "Failed to reject mutation", "error");
     } finally {
       setActionLoading((prev) => ({ ...prev, [ulpin]: null }));
     }

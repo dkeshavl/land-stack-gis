@@ -13,8 +13,8 @@ export function formatPostgisParcel(row) {
     ulpin: row.ulpin,
     lat,
     lng,
-    owner_name: row.owner_name,
-    ownerName: row.owner_name,
+    owner_name: row.owner_name || "Data Unavailable",
+    ownerName: row.owner_name || "Data Unavailable",
     khasra_no: row.khasra_no,
     khasraNumber: row.khasra_no,
     zone_type: row.zone_type,
@@ -27,15 +27,15 @@ export function formatPostgisParcel(row) {
     water_connection_id: row.water_connection_id,
     power_connection_id: row.power_connection_id,
     environmental_zone: row.environmental_zone || "Standard",
-    mutationStatus: row.mutation_status || "Approved",
+    mutationStatus: (row.mutation_status || "").toUpperCase() === "PENDING" ? "Pending" : (row.mutation_status || "").toUpperCase() === "REJECTED" ? "Rejected" : "Approved",
     ownership: {
-      ownerName: row.owner_name,
+      ownerName: row.owner_name || "Data Unavailable",
       previousOwner: row.previous_owner || undefined,
-      pendingNewOwner: row.pending_owner || undefined,
-      applicationId: row.application_id || undefined,
-      transferReason: row.transfer_reason || undefined,
-      khasraNumber: row.khasra_no,
-      mutationStatus: row.mutation_status || "Approved"
+      pendingNewOwner: (row.mutation_status || "").toUpperCase() === "PENDING" ? (row.pending_owner || undefined) : undefined,
+      applicationId: (row.mutation_status || "").toUpperCase() === "PENDING" ? (row.application_id || undefined) : undefined,
+      transferReason: (row.mutation_status || "").toUpperCase() === "PENDING" ? (row.transfer_reason || undefined) : undefined,
+      khasraNumber: row.khasra_no || "-",
+      mutationStatus: (row.mutation_status || "").toUpperCase() === "PENDING" ? "Pending" : (row.mutation_status || "").toUpperCase() === "REJECTED" ? "Rejected" : "Approved"
     },
     zoning: {
       zoneType: row.zone_type || "Residential",
@@ -86,7 +86,7 @@ export function getSynthesizedParcel(cleanUlpin) {
   // Deterministic fallback values based on numerical hash of ULPIN
   const numHash = cleanUlpin.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const surveyNum = `${(numHash % 350) + 1}/${(numHash % 4) + 1}`;
-  const isPending = numHash % 7 === 0;
+  const isPending = false;
 
   const sampleNames = [
     "Rajesh Kumar",
@@ -101,7 +101,7 @@ export function getSynthesizedParcel(cleanUlpin) {
     "Suresh Gowda",
     "Karthik Subbaraj"
   ];
-  const ownerName = sampleNames[numHash % sampleNames.length];
+  const ownerName = sampleNames[numHash % sampleNames.length] || "Data Unavailable";
 
   return {
     id: cleanUlpin,
@@ -114,15 +114,16 @@ export function getSynthesizedParcel(cleanUlpin) {
     khasraNumber: surveyNum,
     zone_type: "Residential",
     zoneType: "Residential",
-    tax_status: isPending ? "Due" : "Paid",
-    taxStatus: isPending ? "Due" : "Paid",
+    tax_status: "Paid",
+    taxStatus: "Paid",
     encumbrance: "Freehold - No Active Liens",
     area_sqm: 185,
     areaSqm: 185,
+    mutationStatus: "Approved",
     ownership: {
       ownerName: ownerName,
       khasraNumber: surveyNum,
-      mutationStatus: isPending ? "Pending" : "Approved"
+      mutationStatus: "Approved"
     },
     zoning: {
       zoneType: "Residential",

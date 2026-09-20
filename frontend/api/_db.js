@@ -28,4 +28,5 @@ if (!pool) {
 }
 
 export const query = (text, params) => pool.query(text, params);
+export { pool };
 export default { query, pool };

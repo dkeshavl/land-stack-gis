@@ -115,7 +115,7 @@ export default function ParcelPanel({
         const fallbackOwner =
           fbProps.ownerName ||
           fbProps.owner_name ||
-          (cleanStr === "29572001218435" ? "Keshav" : "Registered Landholder");
+          "Data Unavailable";
 
         const synthesized = {
           ulpin: activeUlpin,
@@ -181,9 +181,12 @@ export default function ParcelPanel({
     return <EmptyStateMessage onApplyMutation={onApplyMutation} />;
   }
 
-  const isPending = Boolean(
-    (displayParcel?.ownership?.mutationStatus || displayParcel?.mutationStatus || "").toLowerCase() === "pending"
-  );
+  const mutationStatus = (
+    displayParcel?.ownership?.mutationStatus ||
+    displayParcel?.mutationStatus ||
+    ""
+  ).toUpperCase();
+  const isPending = mutationStatus === "PENDING";
   const hasDispute = Boolean(
     displayParcel?.encumbrance?.legalDispute?.hasDispute ||
     (typeof displayParcel?.encumbrance === "string" && displayParcel.encumbrance.toLowerCase().includes("dispute"))
@@ -373,8 +376,8 @@ export default function ParcelPanel({
       {/* Tab Panels Content */}
       {displayParcel && !loading && (
         <div className="mt-4 flex-1 space-y-4 overflow-y-auto pr-0.5">
-          {/* Active Mutation Notification Alert */}
-          {isPending && (
+          {/* Active Mutation Notification Alert - strictly render only when status is PENDING and has active pendingNewOwner */}
+          {isPending && Boolean(displayParcel?.ownership?.pendingNewOwner) && (
             <div className="rounded-none border border-amber-500/40 bg-amber-500/10 p-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -388,20 +391,18 @@ export default function ParcelPanel({
                 </span>
               </div>
 
-              {displayParcel?.ownership?.pendingNewOwner && (
-                <div className="mt-2 rounded-none border border-amber-500/30 bg-white/90 dark:bg-[#111] p-2 text-[11px] text-gray-900 dark:text-white">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-neutral-400">Transferee / Buyer:</span>
-                    <span className="font-bold">{displayParcel.ownership.pendingNewOwner}</span>
-                  </div>
-                  {displayParcel?.ownership?.transferReason && (
-                    <div className="mt-1 flex justify-between">
-                      <span className="text-gray-500 dark:text-neutral-400">Transfer Nature:</span>
-                      <span className="font-semibold">{displayParcel.ownership.transferReason}</span>
-                    </div>
-                  )}
+              <div className="mt-2 rounded-none border border-amber-500/30 bg-white/90 dark:bg-[#111] p-2 text-[11px] text-gray-900 dark:text-white">
+                <div className="flex justify-between">
+                  <span className="text-gray-500 dark:text-neutral-400">Transferee / Buyer:</span>
+                  <span className="font-bold">{displayParcel.ownership.pendingNewOwner}</span>
                 </div>
-              )}
+                {displayParcel?.ownership?.transferReason && (
+                  <div className="mt-1 flex justify-between">
+                    <span className="text-gray-500 dark:text-neutral-400">Transfer Nature:</span>
+                    <span className="font-semibold">{displayParcel.ownership.transferReason}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -433,8 +434,7 @@ export default function ParcelPanel({
                   value={
                     displayParcel?.ownership?.ownerName ||
                     displayParcel?.owner_name ||
-                    displayParcel?.ownerName ||
-                    "Registered Landholder"
+                    "Data Unavailable"
                   }
                 />
                 <DataRow

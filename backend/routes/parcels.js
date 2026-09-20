@@ -272,13 +272,18 @@ function formatPostgisParcel(row) {
     (row.environmental_zone || "").toLowerCase().includes("buffer") ||
     (row.environmental_zone || "").toLowerCase().includes("lake");
 
+  const isPending = (row.mutation_status || "").toUpperCase() === "PENDING";
+  const isRejected = (row.mutation_status || "").toUpperCase() === "REJECTED";
+  const displayStatus = isPending ? "Pending" : isRejected ? "Rejected" : "Approved";
+  const legalOwner = row.owner_name || "Data Unavailable";
+
   return {
     id: row.id,
     ulpin: row.ulpin,
     lat,
     lng,
-    owner_name: row.owner_name,
-    ownerName: row.owner_name,
+    owner_name: legalOwner,
+    ownerName: legalOwner,
     khasra_no: row.khasra_no,
     khasraNumber: row.khasra_no,
     zone_type: row.zone_type,
@@ -291,15 +296,15 @@ function formatPostgisParcel(row) {
     water_connection_id: row.water_connection_id,
     power_connection_id: row.power_connection_id,
     environmental_zone: row.environmental_zone || "Standard",
-    mutationStatus: row.mutation_status || "Approved",
+    mutationStatus: displayStatus,
     ownership: {
-      ownerName: row.owner_name,
+      ownerName: legalOwner,
       previousOwner: row.previous_owner || undefined,
-      pendingNewOwner: row.pending_owner || undefined,
-      applicationId: row.application_id || undefined,
-      transferReason: row.transfer_reason || undefined,
+      pendingNewOwner: isPending ? (row.pending_owner || undefined) : undefined,
+      applicationId: isPending ? (row.application_id || undefined) : undefined,
+      transferReason: isPending ? (row.transfer_reason || undefined) : undefined,
       khasraNumber: row.khasra_no,
-      mutationStatus: row.mutation_status || "Approved"
+      mutationStatus: displayStatus
     },
     zoning: {
       zoneType: row.zone_type,
@@ -368,26 +373,33 @@ router.get("/:ulpin", async (req, res) => {
     try {
       const query = `
         SELECT 
-          id,
-          ulpin,
-          owner_name,
-          pending_owner,
-          previous_owner,
-          mutation_status,
-          application_id,
-          transfer_reason,
-          khasra_no,
-          zone_type,
-          tax_status,
-          encumbrance,
-          area_sqm,
-          water_connection_id,
-          power_connection_id,
-          environmental_zone,
-          ST_Y(ST_Centroid(geom)) AS lat,
-          ST_X(ST_Centroid(geom)) AS lng
-        FROM parcels
-        WHERE UPPER(TRIM(ulpin)) = UPPER($1)
+          p.id,
+          p.ulpin,
+          p.owner_name,
+          p.previous_owner,
+          p.khasra_no,
+          p.zone_type,
+          p.tax_status,
+          p.encumbrance,
+          p.area_sqm,
+          p.water_connection_id,
+          p.power_connection_id,
+          p.environmental_zone,
+          ST_Y(ST_Centroid(p.geom)) AS lat,
+          ST_X(ST_Centroid(p.geom)) AS lng,
+          COALESCE(m.status, CASE WHEN UPPER(p.mutation_status) = 'PENDING' THEN 'Approved' ELSE p.mutation_status END, 'Approved') AS mutation_status,
+          m.buyer_name AS pending_owner,
+          m.application_id,
+          m.transfer_reason
+        FROM parcels p
+        LEFT JOIN LATERAL (
+          SELECT id, buyer_name, application_id, transfer_reason, status
+          FROM mutations
+          WHERE ulpin = p.ulpin AND UPPER(status) = 'PENDING'
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) m ON true
+        WHERE UPPER(TRIM(p.ulpin)) = UPPER($1)
         LIMIT 1;
       `;
 
@@ -423,8 +435,8 @@ router.get("/:ulpin", async (req, res) => {
         ulpin: cleanUlpin,
         lat: data.lat || 12.9009,
         lng: data.lng || 77.4575,
-        ownerName: data.ownership?.ownerName || "Registered Landholder",
-        owner_name: data.ownership?.ownerName || "Registered Landholder",
+        ownerName: data.ownership?.ownerName || "Data Unavailable",
+        owner_name: data.ownership?.ownerName || "Data Unavailable",
         khasraNumber: data.ownership?.khasraNumber || "45/2",
         khasra_no: data.ownership?.khasraNumber || "45/2",
         zoneType: data.zoning?.zoneType || "Commercial",
