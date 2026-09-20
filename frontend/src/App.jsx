@@ -123,7 +123,7 @@ function DashboardLayout({
 
           {/* Centered Search Bar on Desktop (Citizen View only) */}
           {isCitizen ? (
-            <div className="hidden md:flex flex-1 max-w-lg justify-center px-4">
+            <div className="hidden md:flex flex-1 max-w-2xl justify-center px-4">
               <SearchBar map={mapInstance} onSelectParcel={handleParcelSelect} />
             </div>
           ) : (

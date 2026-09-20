@@ -275,19 +275,24 @@ export default function SearchBar({
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-xl">
+    <div ref={containerRef} className="relative w-full max-w-2xl">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {announcement}
       </div>
 
-      <form onSubmit={handleSubmit} role="search" className="relative flex items-center">
-        {/* Search Icon */}
-        <div className="pointer-events-none absolute left-3.5 flex items-center text-gray-400 dark:text-neutral-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        className="flex w-full max-w-2xl items-center px-3 py-1.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-neutral-800 focus-within:ring-1 focus-within:ring-black dark:focus-within:ring-white transition-all gap-2 rounded-none"
+      >
+        {/* Search SVG Icon (Shrink Protected) */}
+        <div className="shrink-0 flex items-center text-gray-400 dark:text-neutral-500">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
           </svg>
         </div>
 
+        {/* The Input Field (Truncation Fix) */}
         <input
           ref={inputRef}
           type="text"
@@ -302,38 +307,37 @@ export default function SearchBar({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           aria-label="Search cadastral parcel by 14-digit ULPIN, Owner Name, or Khasra Number"
-          className="w-full bg-gray-100 dark:bg-[#111] border border-gray-300 dark:border-neutral-800 text-black dark:text-white rounded-none px-4 py-2 pl-10 pr-28 text-sm focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition-all placeholder-gray-400 dark:placeholder-neutral-600 font-sans"
+          className="w-full min-w-0 truncate bg-transparent outline-none text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 font-sans"
         />
 
         {/* Action Controls */}
-        <div className="absolute right-1.5 flex items-center space-x-1.5">
+        <div className="shrink-0 flex items-center gap-2">
           {loading && (
             <div
-              className="mr-1 h-4 w-4 animate-spin rounded-none border-2 border-black dark:border-white border-t-transparent"
+              className="shrink-0 h-4 w-4 animate-spin rounded-none border-2 border-black dark:border-white border-t-transparent"
               aria-label="Loading search results"
             />
           )}
 
-          {!query && (
-            <kbd className="hidden lg:inline-block rounded-none border border-gray-300 dark:border-neutral-800 bg-gray-200 dark:bg-neutral-900 px-1.5 py-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-500">
+          {!query ? (
+            <div className="shrink-0 hidden sm:flex items-center justify-center rounded-none border border-gray-300 dark:border-neutral-800 bg-gray-200 dark:bg-neutral-900 px-1.5 py-0.5 text-[10px] font-mono text-gray-500 dark:text-neutral-500">
               /
-            </kbd>
-          )}
-
-          {query && (
+            </div>
+          ) : (
             <button
               type="button"
               onClick={handleClear}
-              className="rounded-none p-1 text-gray-400 hover:text-black dark:text-neutral-400 dark:hover:text-white"
+              className="shrink-0 rounded-none p-1 text-gray-400 hover:text-black dark:text-neutral-400 dark:hover:text-white cursor-pointer"
               aria-label="Clear search query"
             >
               ✕
             </button>
           )}
 
+          {/* FIND Button (Shrink Protected with Stark SpaceX Theme) */}
           <button
             type="submit"
-            className="bg-black text-white hover:bg-gray-800 dark:bg-transparent dark:border dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none px-4 sm:px-6 py-1.5 uppercase text-xs tracking-widest font-bold cursor-pointer"
+            className="shrink-0 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-neutral-200 transition-colors px-5 py-1.5 text-xs font-bold uppercase tracking-widest rounded-none cursor-pointer"
           >
             Find
           </button>
