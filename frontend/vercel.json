@@ -1,12 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/parcels/:ulpin",
-      "destination": "https://land-stack-gis.onrender.com/api/parcel/:ulpin"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://land-stack-gis.onrender.com/api/:path*"
+      "source": "/((?!api/|parcels.json|.*\\..*).*)",
+      "destination": "/index.html"
     }
   ]
 }

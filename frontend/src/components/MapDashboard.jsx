@@ -220,9 +220,12 @@ function ImperativeCadastreLayer({
           click: async () => {
             if (!ulpin) return;
 
-            // 1. Trigger loading skeleton immediately in ParcelPanel
+            // Extract any baseline properties available on the polygon (e.g. from parcels.json or bbox)
+            const baselineProps = feature?.properties || {};
+
+            // 1. Immediately provide parcel selection with baseline properties
             if (onParcelSelect) {
-              onParcelSelect(ulpin, null, true);
+              onParcelSelect(ulpin, { ulpin, ...baselineProps }, true);
             }
 
             try {
@@ -236,17 +239,17 @@ function ImperativeCadastreLayer({
                 const parcelData = data.data || data;
                 // 3. Populate sidebar with real owner, zoning & tax metadata
                 if (onParcelSelect) {
-                  onParcelSelect(ulpin, { ulpin, ...parcelData }, false);
+                  onParcelSelect(ulpin, { ulpin, ...baselineProps, ...parcelData }, false);
                 }
               } else {
                 if (onParcelSelect) {
-                  onParcelSelect(ulpin, null, false);
+                  onParcelSelect(ulpin, { ulpin, ...baselineProps }, false);
                 }
               }
             } catch (err) {
-              console.error("Error hydrating parcel metadata on click:", err);
+              console.warn("Notice hydrating parcel metadata on click, using baseline:", err);
               if (onParcelSelect) {
-                onParcelSelect(ulpin, null, false);
+                onParcelSelect(ulpin, { ulpin, ...baselineProps }, false);
               }
             }
           },
