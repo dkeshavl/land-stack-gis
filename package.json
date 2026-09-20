@@ -1,0 +1,16 @@
+{
+  "name": "land-stack-gis-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "build": "cd backend && npm install",
+    "postinstall": "cd backend && npm install"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "osmtogeojson": "^3.0.0-beta.5",
+    "pg": "^8.23.0"
+  }
+}

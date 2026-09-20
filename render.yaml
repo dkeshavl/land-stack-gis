@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: land-stack-gis
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://postgres.yuekikfcikvkddamazdi:Keshav%40LandStack%402026%23Gis@aws-0-ap-south-1.pooler.supabase.com:6543/postgres

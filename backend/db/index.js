@@ -19,7 +19,9 @@ if (!process.env.DATABASE_URL) {
   }
 }
 
-const rawConnectionString = process.env.DATABASE_URL || "";
+const DEFAULT_DATABASE_URL =
+  "postgresql://postgres.yuekikfcikvkddamazdi:Keshav%40LandStack%402026%23Gis@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+const rawConnectionString = process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
 const connectionString =
   rawConnectionString +
   (rawConnectionString.includes("6543") && !rawConnectionString.includes("pgbouncer=true")
