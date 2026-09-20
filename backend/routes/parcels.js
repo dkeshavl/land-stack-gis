@@ -115,6 +115,11 @@ router.get("/", async (req, res) => {
                 'id', p.id,
                 'ulpin', p.ulpin,
                 'ownerName', p.owner_name,
+                'pendingNewOwner', p.pending_owner,
+                'previousOwner', p.previous_owner,
+                'mutationStatus', COALESCE(p.mutation_status, 'Approved'),
+                'applicationId', p.application_id,
+                'transferReason', p.transfer_reason,
                 'khasraNumber', p.khasra_no,
                 'zoneType', p.zone_type,
                 'taxStatus', p.tax_status,
@@ -127,9 +132,9 @@ router.get("/", async (req, res) => {
         )
       ) AS geojson
       FROM (
-        SELECT id, ulpin, owner_name, khasra_no, zone_type, tax_status, encumbrance, area_sqm, geom
+        SELECT id, ulpin, owner_name, pending_owner, previous_owner, mutation_status, application_id, transfer_reason, khasra_no, zone_type, tax_status, encumbrance, area_sqm, geom
         FROM parcels
-        ORDER BY updated_at DESC, id DESC
+        ORDER BY (CASE WHEN mutation_status = 'Pending' THEN 0 ELSE 1 END), updated_at DESC NULLS LAST, id DESC
         LIMIT 100
       ) p;
     `;
@@ -286,10 +291,15 @@ function formatPostgisParcel(row) {
     water_connection_id: row.water_connection_id,
     power_connection_id: row.power_connection_id,
     environmental_zone: row.environmental_zone || "Standard",
+    mutationStatus: row.mutation_status || "Approved",
     ownership: {
       ownerName: row.owner_name,
+      previousOwner: row.previous_owner || undefined,
+      pendingNewOwner: row.pending_owner || undefined,
+      applicationId: row.application_id || undefined,
+      transferReason: row.transfer_reason || undefined,
       khasraNumber: row.khasra_no,
-      mutationStatus: "Approved"
+      mutationStatus: row.mutation_status || "Approved"
     },
     zoning: {
       zoneType: row.zone_type,
@@ -361,6 +371,11 @@ router.get("/:ulpin", async (req, res) => {
           id,
           ulpin,
           owner_name,
+          pending_owner,
+          previous_owner,
+          mutation_status,
+          application_id,
+          transfer_reason,
           khasra_no,
           zone_type,
           tax_status,

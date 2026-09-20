@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       return res.status(200).json(result.rows[0]?.geojson || { type: "FeatureCollection", features: [] });
     }
 
-    // Default: Return recent parcels if no bbox specified
+    // Default: Return recent parcels with pending mutations prioritized
     const allQuery = `
       SELECT json_build_object(
         'type', 'FeatureCollection',
@@ -103,6 +103,11 @@ export default async function handler(req, res) {
                 'id', p.id,
                 'ulpin', p.ulpin,
                 'ownerName', p.owner_name,
+                'pendingNewOwner', p.pending_owner,
+                'previousOwner', p.previous_owner,
+                'mutationStatus', COALESCE(p.mutation_status, 'Approved'),
+                'applicationId', p.application_id,
+                'transferReason', p.transfer_reason,
                 'khasraNumber', p.khasra_no,
                 'zoneType', p.zone_type,
                 'taxStatus', p.tax_status,
@@ -115,9 +120,9 @@ export default async function handler(req, res) {
         )
       ) AS geojson
       FROM (
-        SELECT id, ulpin, owner_name, khasra_no, zone_type, tax_status, encumbrance, area_sqm, geom
+        SELECT id, ulpin, owner_name, pending_owner, previous_owner, mutation_status, application_id, transfer_reason, khasra_no, zone_type, tax_status, encumbrance, area_sqm, geom
         FROM parcels
-        ORDER BY updated_at DESC, id DESC
+        ORDER BY (CASE WHEN mutation_status = 'Pending' THEN 0 ELSE 1 END), updated_at DESC NULLS LAST, id DESC
         LIMIT 100
       ) p;
     `;

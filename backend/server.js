@@ -318,7 +318,7 @@ app.get("/api/analytics/metrics", async (req, res) => {
  * POST /api/mutation/apply
  * Citizen Form 12-A Title Mutation Application
  */
-app.post("/api/mutation/apply", (req, res) => {
+app.post("/api/mutation/apply", async (req, res) => {
   const { ulpin, newOwnerName, transferReason, documentName, applicantNotes, applicantPhone } = req.body;
 
   if (!ulpin || !newOwnerName) {
@@ -330,6 +330,33 @@ app.post("/api/mutation/apply", (req, res) => {
 
   const cleanUlpin = ulpin.trim().toUpperCase().replace(/[^a-zA-Z0-9]/g, "");
   const applicationId = `MUT-${Date.now().toString().slice(-6)}`;
+
+  let currentOwner = "Registered Landholder";
+
+  try {
+    // 1. Check current legal owner so title is NOT prematurely changed before approval
+    const checkRes = await db.query(
+      "SELECT owner_name FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1",
+      [cleanUlpin]
+    );
+    if (checkRes.rows.length > 0 && checkRes.rows[0].owner_name) {
+      currentOwner = checkRes.rows[0].owner_name;
+    }
+
+    // 2. Queue mutation in PostGIS: keep owner_name intact, set pending_owner & mutation_status = 'Pending'
+    await db.query(
+      `UPDATE parcels 
+       SET pending_owner = $1, 
+           mutation_status = 'Pending', 
+           application_id = $2, 
+           transfer_reason = $3, 
+           updated_at = NOW() 
+       WHERE UPPER(TRIM(ulpin)) = UPPER($4)`,
+      [newOwnerName.trim(), applicationId, transferReason || "Sale Deed", cleanUlpin]
+    );
+  } catch (dbErr) {
+    console.warn("PostGIS mutation apply DB update warning:", dbErr.message);
+  }
 
   if (mockData[cleanUlpin]) {
     const parcel = mockData[cleanUlpin];
@@ -367,7 +394,8 @@ app.post("/api/mutation/apply", (req, res) => {
   // If parcel is new or in PostGIS without local mock
   mockData[cleanUlpin] = {
     ownership: {
-      ownerName: newOwnerName.trim(),
+      ownerName: currentOwner,
+      pendingNewOwner: newOwnerName.trim(),
       khasraNumber: `${Math.floor(Math.random() * 50) + 1}/${Math.floor(Math.random() * 5) + 1}`,
       mutationStatus: "Pending",
       applicationId,
@@ -389,7 +417,7 @@ app.post("/api/mutation/apply", (req, res) => {
       status: "Freehold - No Active Liens",
       isEncumbered: false,
       mortgageDetails: { isMortgaged: false, bankName: "None", loanId: "N/A", sanctionedAmount: "₹0" },
-      legalDispute: { hasDispute: false, status: "Clear Title", courtCaseId: "None", remarks: "New registration - Pending Title Verification" },
+      legalDispute: { hasDispute: false, status: "Clear Title", courtCaseId: "None", remarks: "Pending Title Verification" },
       certificate: { necNumber: `NEC-2026-${Date.now().toString().slice(-4)}`, issuedDate: new Date().toISOString().split("T")[0], validity: "Provisional Registration" }
     },
     utilities: {
@@ -453,15 +481,19 @@ async function handleMutationApproval(req, res) {
     parcel.ownership.approvedAt = new Date().toISOString();
   }
 
-  // 1. UPDATE POSTGIS DATABASE (Critical Fix!)
+  // 1. UPDATE POSTGIS DATABASE (Legal Title Transfer upon Approval)
   try {
     await db.query(
       `UPDATE parcels 
-       SET owner_name = $1, updated_at = NOW() 
+       SET previous_owner = owner_name,
+           owner_name = $1, 
+           pending_owner = NULL,
+           mutation_status = 'Approved',
+           updated_at = NOW() 
        WHERE UPPER(TRIM(ulpin)) = UPPER($2)`,
       [targetOwner, cleanUlpin]
     );
-    console.log(`✅ PostGIS database updated: ULPIN ${cleanUlpin} owner set to "${targetOwner}"`);
+    console.log(`✅ PostGIS database updated: ULPIN ${cleanUlpin} title legally transferred to "${targetOwner}"`);
   } catch (dbErr) {
     console.warn("PostGIS update during approval:", dbErr.message);
   }
@@ -515,13 +547,15 @@ async function handleMutationRejection(req, res) {
   mockData[cleanUlpin].ownership.rejectedAt = new Date().toISOString();
   delete mockData[cleanUlpin].ownership.pendingNewOwner;
 
-  // 1. REVERT POSTGIS DATABASE to rightful original owner
+  // 1. REVERT POSTGIS DATABASE: clear pending_owner and set mutation_status = 'Rejected'
   try {
     await db.query(
       `UPDATE parcels 
-       SET owner_name = $1, updated_at = NOW() 
-       WHERE UPPER(TRIM(ulpin)) = UPPER($2)`,
-      [previousOwner, cleanUlpin]
+       SET pending_owner = NULL, 
+           mutation_status = 'Rejected', 
+           updated_at = NOW() 
+       WHERE UPPER(TRIM(ulpin)) = UPPER($1)`,
+      [cleanUlpin]
     );
     console.log(`❌ PostGIS mutation rejected: ULPIN ${cleanUlpin} title retained for "${previousOwner}"`);
   } catch (dbErr) {

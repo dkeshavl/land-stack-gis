@@ -27,10 +27,15 @@ export function formatPostgisParcel(row) {
     water_connection_id: row.water_connection_id,
     power_connection_id: row.power_connection_id,
     environmental_zone: row.environmental_zone || "Standard",
+    mutationStatus: row.mutation_status || "Approved",
     ownership: {
       ownerName: row.owner_name,
+      previousOwner: row.previous_owner || undefined,
+      pendingNewOwner: row.pending_owner || undefined,
+      applicationId: row.application_id || undefined,
+      transferReason: row.transfer_reason || undefined,
       khasraNumber: row.khasra_no,
-      mutationStatus: "Approved"
+      mutationStatus: row.mutation_status || "Approved"
     },
     zoning: {
       zoneType: row.zone_type || "Residential",

@@ -19,6 +19,8 @@ export default async function handler(req, res) {
         SELECT 
           ulpin,
           owner_name as "ownerName",
+          pending_owner as "pendingNewOwner",
+          COALESCE(mutation_status, 'Approved') as "mutationStatus",
           khasra_no as "khasraNumber",
           zone_type as "zoneType",
           tax_status as "taxStatus",
@@ -27,6 +29,7 @@ export default async function handler(req, res) {
         FROM parcels
         WHERE ulpin ILIKE $1 
            OR owner_name ILIKE $1 
+           OR pending_owner ILIKE $1
            OR khasra_no ILIKE $1
         LIMIT 20;
       `;
@@ -34,9 +37,10 @@ export default async function handler(req, res) {
       results = pgRes.rows.map((r) => ({
         ulpin: r.ulpin,
         ownerName: r.ownerName || "Registered Landholder",
+        pendingNewOwner: r.pendingNewOwner || undefined,
         khasraNumber: r.khasraNumber || "-",
         zoneType: r.zoneType || "Residential",
-        mutationStatus: "Approved",
+        mutationStatus: r.mutationStatus || "Approved",
         lat: parseFloat(r.lat) || 12.9250,
         lng: parseFloat(r.lng) || 77.5850
       }));

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const { ulpin, newOwnerName, transferReason, documentName } = req.body || {};
+  const { ulpin, newOwnerName, transferReason, documentName, applicantNotes, applicantPhone } = req.body || {};
 
   if (!ulpin || !newOwnerName) {
     return res.status(400).json({
@@ -21,14 +21,31 @@ export default async function handler(req, res) {
   const cleanUlpin = String(ulpin).replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
   const applicationId = `MUT-${Date.now().toString().slice(-6)}`;
 
+  let currentOwner = "Registered Landholder";
+
   try {
-    // Attempt updating in database if present
+    // 1. Fetch current legal owner so title is NOT prematurely transferred
+    const checkRes = await query(
+      "SELECT owner_name FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1",
+      [cleanUlpin]
+    );
+    if (checkRes.rows.length > 0 && checkRes.rows[0].owner_name) {
+      currentOwner = checkRes.rows[0].owner_name;
+    }
+
+    // 2. Queue mutation application under 'Pending' review: keep owner_name intact, set pending_owner
     await query(
-      "UPDATE parcels SET owner_name = $1, updated_at = NOW() WHERE UPPER(TRIM(ulpin)) = UPPER($2)",
-      [newOwnerName.trim(), cleanUlpin]
+      `UPDATE parcels 
+       SET pending_owner = $1, 
+           mutation_status = 'Pending', 
+           application_id = $2, 
+           transfer_reason = $3, 
+           updated_at = NOW() 
+       WHERE UPPER(TRIM(ulpin)) = UPPER($4)`,
+      [newOwnerName.trim(), applicationId, transferReason || "Sale Deed", cleanUlpin]
     );
   } catch (err) {
-    console.warn("Vercel mutation DB update warning:", err.message);
+    console.warn("Mutation apply DB update warning:", err.message);
   }
 
   return res.status(200).json({
@@ -40,12 +57,14 @@ export default async function handler(req, res) {
       ulpin: cleanUlpin,
       applicationId,
       ownership: {
-        ownerName: newOwnerName.trim(),
+        ownerName: currentOwner,
         pendingNewOwner: newOwnerName.trim(),
         mutationStatus: "Pending",
         transferReason: transferReason || "Sale Deed",
         documentAttached: documentName || "Registered_Deed.pdf",
-        appliedAt: new Date().toISOString()
+        appliedAt: new Date().toISOString(),
+        applicantNotes,
+        applicantPhone
       }
     }
   });

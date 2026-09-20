@@ -17,27 +17,17 @@ export default async function handler(req, res) {
 
   const cleanUlpin = String(ulpin).replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
 
-  // Handle PUT or POST title mutation update
-  if (req.method === "PUT" || (req.method === "POST" && req.body?.newOwnerName)) {
-    const targetOwner = (req.body?.newOwnerName || req.body?.owner_name || req.body?.ownerName || "").trim();
-    if (targetOwner) {
-      try {
-        await query(
-          "UPDATE parcels SET owner_name = $1, updated_at = NOW() WHERE UPPER(TRIM(ulpin)) = UPPER($2)",
-          [targetOwner, cleanUlpin]
-        );
-      } catch (err) {
-        console.warn("Vercel PostGIS update warning:", err.message);
-      }
-    }
-  }
-
   try {
     const sql = `
       SELECT 
         id,
         ulpin,
         owner_name,
+        pending_owner,
+        previous_owner,
+        mutation_status,
+        application_id,
+        transfer_reason,
         khasra_no,
         zone_type,
         tax_status,

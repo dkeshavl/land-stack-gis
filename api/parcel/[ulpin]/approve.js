@@ -11,25 +11,46 @@ export default async function handler(req, res) {
 
   const { ulpin } = req.query;
   const cleanUlpin = String(ulpin || "").replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
-  const targetOwner = (req.body?.newOwnerName || "Verified Landholder").trim();
 
   try {
-    await query(
-      "UPDATE parcels SET owner_name = $1, updated_at = NOW() WHERE UPPER(TRIM(ulpin)) = UPPER($2)",
-      [targetOwner, cleanUlpin]
+    // 1. Fetch current legal owner and pending transferee
+    const checkRes = await query(
+      "SELECT owner_name, pending_owner FROM parcels WHERE UPPER(TRIM(ulpin)) = UPPER($1) LIMIT 1",
+      [cleanUlpin]
     );
-  } catch (err) {
-    console.warn("Vercel approve mutation warning:", err.message);
-  }
 
-  return res.status(200).json({
-    success: true,
-    message: `Mutation for parcel ${cleanUlpin} approved successfully`,
-    ulpin: cleanUlpin,
-    data: {
+    const currentLegalOwner = checkRes.rows[0]?.owner_name || "Registered Landholder";
+    const targetOwner = (
+      req.body?.newOwnerName ||
+      checkRes.rows[0]?.pending_owner ||
+      "Verified Landholder"
+    ).trim();
+
+    // 2. Legally transfer title in PostGIS: set previous_owner, update owner_name, clear pending_owner, mark Approved
+    await query(
+      `UPDATE parcels 
+       SET previous_owner = $1, 
+           owner_name = $2, 
+           pending_owner = NULL, 
+           mutation_status = 'Approved', 
+           updated_at = NOW() 
+       WHERE UPPER(TRIM(ulpin)) = UPPER($3)`,
+      [currentLegalOwner, targetOwner, cleanUlpin]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Mutation for parcel ${cleanUlpin} approved successfully`,
       ulpin: cleanUlpin,
-      ownerName: targetOwner,
-      mutationStatus: "Approved"
-    }
-  });
+      data: {
+        ulpin: cleanUlpin,
+        ownerName: targetOwner,
+        previousOwner: currentLegalOwner,
+        mutationStatus: "Approved"
+      }
+    });
+  } catch (err) {
+    console.error("Vercel approve mutation error:", err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 }
