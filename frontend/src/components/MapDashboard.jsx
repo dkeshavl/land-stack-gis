@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "../context/ThemeContext";
@@ -217,7 +217,11 @@ function ImperativeCadastreLayer({
         });
 
         l.on({
-          click: async () => {
+          click: async (e) => {
+            if (e) {
+              if (typeof e.stopPropagation === "function") e.stopPropagation();
+              if (e.originalEvent) L.DomEvent.stopPropagation(e);
+            }
             if (!ulpin) return;
 
             // Extract any baseline properties available on the polygon (e.g. from parcels.json or bbox)
@@ -433,6 +437,20 @@ function MapViewController({ selectedUlpIn, geoJsonRef, onMapReady }) {
   return null;
 }
 
+/**
+ * MapEmptyClickHandler: Clears selected parcel and green highlight when clicking empty map space
+ */
+function MapEmptyClickHandler({ onClearSelection }) {
+  useMapEvents({
+    click: () => {
+      if (onClearSelection) {
+        onClearSelection();
+      }
+    }
+  });
+  return null;
+}
+
 function MapDashboard({
   selectedUlpIn,
   selectedParcel,
@@ -515,6 +533,15 @@ function MapDashboard({
     };
   }, [refreshCurrentParcel]);
 
+  const handleClearSelection = useCallback(() => {
+    if (onParcelSelect) {
+      onParcelSelect(null, null, false);
+    }
+    if (setSelectedParcel) {
+      setSelectedParcel(null);
+    }
+  }, [onParcelSelect, setSelectedParcel]);
+
   return (
     <div className="relative h-full w-full">
       {/* 1. Zoom Gatekeeping Banner with Interactive Direct "Zoom to Cadastre" CTA */}
@@ -569,9 +596,16 @@ function MapDashboard({
         center={[12.9250, 77.5850]}
         zoom={16}
         scrollWheelZoom
+        zoomControl={false}
         preferCanvas={true}
         className={`h-full w-full ${isDark ? "dark-map-container" : ""}`}
       >
+        {/* Relocated Zoom Control to bottom-right to prevent toolbar collision on mobile */}
+        <ZoomControl position="bottomright" />
+
+        {/* Empty area click listener to clear active parcel selection */}
+        <MapEmptyClickHandler onClearSelection={handleClearSelection} />
+
         <TileLayer
           key={`${activeBasemap.id}-${isDark ? "dark" : "light"}`}
           url={activeBasemap.url}

@@ -258,8 +258,11 @@ export default function ParcelPanel({
             onClick={handleCopyUlpin}
             title="Copy 14-digit ULPIN to clipboard"
             aria-label="Copy ULPIN"
-            className={`inline-flex items-center gap-1 border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-mono text-[10px] font-bold uppercase tracking-wider rounded-none px-2 py-0.5 transition-colors cursor-pointer ${copied ? "bg-black text-white dark:bg-white dark:text-black" : ""
-              }`}
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider rounded-none border transition-colors cursor-pointer ${
+              copied
+                ? "bg-white border-white text-black"
+                : "bg-transparent border-gray-500 text-gray-500 hover:text-white hover:border-white"
+            }`}
           >
             {copied ? (
               <>

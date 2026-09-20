@@ -343,6 +343,8 @@ function CitizenView({
   selectedParcelData,
   isParcelLoading,
   handleParcelSelect,
+  isMobileDrawerOpen,
+  setIsMobileDrawerOpen,
   setMapInstance,
   refreshKey,
   refreshCurrentParcel,
@@ -402,10 +404,26 @@ function CitizenView({
             <span>Tap any parcel polygon to inspect</span>
           </div>
         )}
+
+        {/* Floating pill on mobile to re-open dossier when drawer is closed */}
+        {selectedUlpIn && !isMobileDrawerOpen && (
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 border border-emerald-500 bg-black/90 px-4 py-2 text-xs font-mono font-bold text-white shadow-2xl backdrop-blur-md sm:hidden cursor-pointer"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>DOSSIER: {selectedUlpIn}</span>
+            <span className="text-emerald-400">▲</span>
+          </button>
+        )}
       </div>
 
-      {/* Mobile Bottom Sheet (<768px) */}
-      <BottomSheet isOpen={Boolean(selectedUlpIn)} onClose={() => handleParcelSelect(null)}>
+      {/* Mobile Bottom Sheet (<768px): Closing drawer decouples from map selection */}
+      <BottomSheet
+        isOpen={Boolean(selectedUlpIn) && isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+      >
         <ParcelPanel
           selectedUlpIn={selectedUlpIn}
           parcelData={selectedParcelData}
@@ -475,6 +493,7 @@ function AppContent() {
   const [selectedUlpIn, setSelectedUlpIn] = useState(null);
   const [selectedParcelData, setSelectedParcelData] = useState(null);
   const [isParcelLoading, setIsParcelLoading] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [mapInstance, setMapInstance] = useState(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(
     () => localStorage.getItem("landstack_admin_auth") === "true"
@@ -507,6 +526,11 @@ function AppContent() {
     setSelectedUlpIn(ulpin);
     setSelectedParcelData(data);
     setIsParcelLoading(loading);
+    if (ulpin) {
+      setIsMobileDrawerOpen(true);
+    } else {
+      setIsMobileDrawerOpen(false);
+    }
   };
 
   // Auto-Refresh callback: re-hydrates current parcel from backend
@@ -544,6 +568,7 @@ function AppContent() {
     setSelectedParcelData(data);
     setIsParcelLoading(false);
     setRefreshKey((prev) => prev + 1);
+    setIsMobileDrawerOpen(true);
     navigate("/citizen");
   };
 
@@ -605,6 +630,8 @@ function AppContent() {
               selectedParcelData={selectedParcelData}
               isParcelLoading={isParcelLoading}
               handleParcelSelect={handleParcelSelect}
+              isMobileDrawerOpen={isMobileDrawerOpen}
+              setIsMobileDrawerOpen={setIsMobileDrawerOpen}
               setMapInstance={setMapInstance}
               refreshKey={refreshKey}
               refreshCurrentParcel={refreshCurrentParcel}

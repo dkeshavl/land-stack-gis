@@ -265,6 +265,12 @@ export default function SearchBar({
     setIsOpen(false);
     setLoading(false);
     setAnnouncement("Search cleared.");
+    if (onSelectParcel) {
+      onSelectParcel(null, null, false);
+    }
+    if (setSelectedParcel) {
+      setSelectedParcel(null);
+    }
     inputRef.current?.focus();
   };
 
