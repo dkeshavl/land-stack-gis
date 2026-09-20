@@ -70,7 +70,10 @@ export default function ServiceRequestModal({
     }
     setFetchingCurrent(true);
     try {
-      const res = await fetch(`/api/parcel/${targetUlpin}`);
+      let res = await fetch(`/api/parcel/${targetUlpin}`);
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/parcels/${targetUlpin}`);
+      }
       if (res.ok) {
         const data = await res.json();
         setCurrentOwner(data.data?.ownership?.ownerName || "");

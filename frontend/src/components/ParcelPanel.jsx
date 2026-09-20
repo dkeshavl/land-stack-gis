@@ -89,7 +89,10 @@ export default function ParcelPanel({
       setLoading(true);
       setError("");
       try {
-        const response = await fetch(`/api/parcels/${encodeURIComponent(activeUlpin)}`);
+        let response = await fetch(`/api/parcel/${encodeURIComponent(activeUlpin)}`);
+        if (!response.ok && response.status === 404) {
+          response = await fetch(`/api/parcels/${encodeURIComponent(activeUlpin)}`);
+        }
         let result = {};
         try {
           result = await response.json();
@@ -98,7 +101,8 @@ export default function ParcelPanel({
         }
         if (!isMounted) return;
         if (!response.ok) throw new Error(result.message || "Unable to load parcel record");
-        setParcel(result.data || result);
+        const rawParcel = result.data || result;
+        setParcel({ ulpin: rawParcel.ulpin || result.ulpin || activeUlpin, ...rawParcel });
       } catch (err) {
         if (!isMounted) return;
         setParcel(null);

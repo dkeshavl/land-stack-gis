@@ -139,7 +139,10 @@ export default function SearchBar({
 
     try {
       // Fetch full parcel metadata from hydration endpoint
-      const response = await fetch(`/api/parcels/${cleanUlpin}`);
+      let response = await fetch(`/api/parcel/${cleanUlpin}`);
+      if (!response.ok && response.status === 404) {
+        response = await fetch(`/api/parcels/${cleanUlpin}`);
+      }
 
       if (response.status === 404) {
         setToastMessage(`Cadastral record for ULPIN ${cleanUlpin} not found in database.`);

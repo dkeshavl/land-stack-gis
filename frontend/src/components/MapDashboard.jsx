@@ -214,13 +214,16 @@ function ImperativeCadastreLayer({
 
             try {
               // 2. Fetch full parcel metadata from hydration endpoint
-              const res = await fetch(`/api/parcels/${encodeURIComponent(ulpin)}`);
+              let res = await fetch(`/api/parcel/${encodeURIComponent(ulpin)}`);
+              if (!res.ok && res.status === 404) {
+                res = await fetch(`/api/parcels/${encodeURIComponent(ulpin)}`);
+              }
               if (res.ok) {
                 const data = await res.json();
                 const parcelData = data.data || data;
                 // 3. Populate sidebar with real owner, zoning & tax metadata
                 if (onParcelSelect) {
-                  onParcelSelect(ulpin, parcelData, false);
+                  onParcelSelect(ulpin, { ulpin, ...parcelData }, false);
                 }
               } else {
                 if (onParcelSelect) {
@@ -427,7 +430,10 @@ function MapDashboard({
 
       try {
         const cleanUlpin = String(currentUlpin).replace(/[^a-zA-Z0-9]/g, "").trim();
-        const res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+        let res = await fetch(`/api/parcel/${cleanUlpin}?t=${Date.now()}`);
+        if (!res.ok && res.status === 404) {
+          res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+        }
         if (!res.ok) {
           throw new Error(`Failed to refresh parcel data: HTTP ${res.status}`);
         }

@@ -266,7 +266,7 @@
         "ownerName": "Meenakshi Iyer",
         "khasraNumber": "15/2",
         "zoneType": "Residential",
-        "mutationStatus": "Approved"
+        "mutationStatus": "Rejected"
       },
       "geometry": {
         "type": "Polygon",

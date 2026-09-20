@@ -47,14 +47,18 @@ function App() {
     try {
       setIsParcelLoading(true);
       const cleanUlpin = String(ulpinToFetch).replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
-      const res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+      let res = await fetch(`/api/parcel/${cleanUlpin}?t=${Date.now()}`);
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+      }
       if (res.ok) {
         const json = await res.json();
         const freshData = json.data || json;
-        setSelectedUlpIn(freshData.ulpin || cleanUlpin);
-        setSelectedParcelData(freshData);
+        const parcelObj = { ulpin: freshData.ulpin || cleanUlpin, ...freshData };
+        setSelectedUlpIn(parcelObj.ulpin || cleanUlpin);
+        setSelectedParcelData(parcelObj);
         setRefreshKey((prev) => prev + 1);
-        return freshData;
+        return parcelObj;
       }
     } catch (err) {
       console.error("Failed to auto-refresh parcel:", err);
