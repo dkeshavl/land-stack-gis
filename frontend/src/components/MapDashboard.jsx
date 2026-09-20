@@ -112,6 +112,32 @@ function ImperativeCadastreLayer({
     selectedUlpInRef.current = selectedUlpIn;
   }, [selectedUlpIn]);
 
+  // Helper to imperatively inject features into existing canvas layer
+  const injectFeatures = useCallback((featuresToAdd) => {
+    if (!geoJsonRef.current || typeof geoJsonRef.current.addData !== "function") return;
+    const rawList = Array.isArray(featuresToAdd?.features)
+      ? featuresToAdd.features
+      : Array.isArray(featuresToAdd)
+      ? featuresToAdd
+      : [];
+
+    const newFeatures = rawList.filter((feat) => {
+      const ulpin = feat?.properties?.ulpin || feat?.ulpin;
+      if (!ulpin || renderedUlpinsRef.current?.has(ulpin)) {
+        return false;
+      }
+      renderedUlpinsRef.current.add(ulpin);
+      return true;
+    });
+
+    if (newFeatures.length > 0) {
+      geoJsonRef.current.addData({
+        type: "FeatureCollection",
+        features: newFeatures
+      });
+    }
+  }, [geoJsonRef]);
+
   // Viewport fetcher with BBox query & spatial deduplication
   const fetchViewportParcels = useCallback(() => {
     const zoom = map.getZoom();
@@ -153,21 +179,8 @@ function ImperativeCadastreLayer({
           ? data
           : [];
 
-        const newFeatures = rawFeatures.filter((feat) => {
-          const ulpin = feat?.properties?.ulpin || feat?.ulpin;
-          if (!ulpin || renderedUlpinsRef.current?.has(ulpin)) {
-            return false;
-          }
-          renderedUlpinsRef.current.add(ulpin);
-          return true;
-        });
-
-        // Imperatively stream new polygons into existing canvas without unmounting
-        if (newFeatures.length > 0 && geoJsonRef.current && typeof geoJsonRef.current.addData === "function") {
-          geoJsonRef.current.addData({
-            type: "FeatureCollection",
-            features: newFeatures
-          });
+        if (rawFeatures.length > 0) {
+          injectFeatures(rawFeatures);
         }
       } catch (err) {
         if (err?.name !== "AbortError") {
@@ -175,7 +188,7 @@ function ImperativeCadastreLayer({
         }
       }
     }, 250);
-  }, [map, onZoomChange, geoJsonRef]);
+  }, [map, onZoomChange, injectFeatures]);
 
   // Map viewport events
   useMapEvents({
@@ -259,7 +272,17 @@ function ImperativeCadastreLayer({
     layer.addTo(map);
     geoJsonRef.current = layer;
 
-    // Initial viewport query
+    // Immediately load guaranteed base cadastral parcel polygons from /parcels.json
+    fetch("/parcels.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((geoData) => {
+        if (geoData?.features) {
+          injectFeatures(geoData.features);
+        }
+      })
+      .catch((e) => console.warn("Notice loading base parcels.json:", e));
+
+    // Viewport query for live PostGIS streaming if available
     fetchViewportParcels();
 
     return () => {
@@ -355,29 +378,52 @@ function MapViewController({ selectedUlpIn, geoJsonRef, onMapReady }) {
   }, [map]);
 
   useEffect(() => {
-    if (!selectedUlpIn || !geoJsonRef.current || typeof geoJsonRef.current.eachLayer !== "function") return;
+    if (!selectedUlpIn) return;
 
-    try {
-      geoJsonRef.current.eachLayer((layer) => {
-        const featureUlpin = layer?.feature?.properties?.ulpin || layer?.feature?.ulpin;
-        if (featureUlpin === selectedUlpIn) {
-          if (layer?.getBounds && typeof layer.getBounds === "function") {
-            const bounds = layer.getBounds();
-            if (bounds && typeof bounds.isValid === "function" && bounds.isValid()) {
-              const isMobile = window.innerWidth < 768;
-              map.flyToBounds(bounds, {
-                maxZoom: 18,
-                duration: 1.2,
-                easeLinearity: 0.25,
-                paddingTopLeft: [40, 40],
-                paddingBottomRight: isMobile ? [40, 240] : [420, 40]
-              });
+    let found = false;
+    if (geoJsonRef.current && typeof geoJsonRef.current.eachLayer === "function") {
+      try {
+        geoJsonRef.current.eachLayer((layer) => {
+          const featureUlpin = layer?.feature?.properties?.ulpin || layer?.feature?.ulpin;
+          if (featureUlpin === selectedUlpIn) {
+            if (layer?.getBounds && typeof layer.getBounds === "function") {
+              const bounds = layer.getBounds();
+              if (bounds && typeof bounds.isValid === "function" && bounds.isValid()) {
+                found = true;
+                const isMobile = window.innerWidth < 768;
+                map.flyToBounds(bounds, {
+                  maxZoom: 18,
+                  duration: 1.2,
+                  easeLinearity: 0.25,
+                  paddingTopLeft: [40, 40],
+                  paddingBottomRight: isMobile ? [40, 240] : [420, 40]
+                });
+              }
             }
           }
-        }
-      });
-    } catch (err) {
-      console.warn("MapViewController flyToBounds notice:", err);
+        });
+      } catch (err) {
+        console.warn("MapViewController flyToBounds notice:", err);
+      }
+    }
+
+    // Fallback flyTo coordinates if layer bounds aren't yet available
+    if (!found) {
+      const FALLBACK_CENTROIDS = {
+        "1234567890ABCD": [12.9298, 77.5843],
+        "1234567891ABCE": [12.9231, 77.5877],
+        "1234567892ABCF": [12.9245, 77.5862],
+        "1234567893ABCG": [12.9260, 77.5850],
+        "1234567894ABCH": [12.9275, 77.5835],
+        "1234567895ABCI": [12.9288, 77.5820],
+        "1234567896ABCJ": [12.9302, 77.5810],
+        "1234567897ABCK": [12.9315, 77.5800],
+        "29572001218407": [12.9338, 77.5917]
+      };
+      if (FALLBACK_CENTROIDS[selectedUlpIn]) {
+        const [cLat, cLng] = FALLBACK_CENTROIDS[selectedUlpIn];
+        map.flyTo([cLat, cLng], 17, { duration: 1.2 });
+      }
     }
   }, [selectedUlpIn, map, geoJsonRef]);
 

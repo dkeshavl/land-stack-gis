@@ -166,9 +166,23 @@ export default function SearchBar({
           onSelectParcel(fullData.ulpin, fullData, false);
         }
 
-        // Safe coordinate extraction
-        const targetLat = parseFloat(fullData.lat);
-        const targetLng = parseFloat(fullData.lng);
+        // Safe coordinate extraction with robust centroids for demo & registry parcels
+        const FALLBACK_CENTROIDS = {
+          "1234567890ABCD": [12.9298, 77.5843],
+          "1234567891ABCE": [12.9231, 77.5877],
+          "1234567892ABCF": [12.9245, 77.5862],
+          "1234567893ABCG": [12.9260, 77.5850],
+          "1234567894ABCH": [12.9275, 77.5835],
+          "1234567895ABCI": [12.9288, 77.5820],
+          "1234567896ABCJ": [12.9302, 77.5810],
+          "1234567897ABCK": [12.9315, 77.5800],
+          "29572001218407": [12.9338, 77.5917]
+        };
+        const fb = FALLBACK_CENTROIDS[cleanUlpin] || [12.9298, 77.5843];
+        const parsedLat = parseFloat(fullData.lat);
+        const parsedLng = parseFloat(fullData.lng);
+        const targetLat = !isNaN(parsedLat) ? parsedLat : fb[0];
+        const targetLng = !isNaN(parsedLng) ? parsedLng : fb[1];
 
         // Fly map with safe zoom clamping (prevents OpenTopoMap blank tile crash)
         const activeMap = map || window.gisMap;

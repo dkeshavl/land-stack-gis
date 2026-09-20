@@ -22,8 +22,8 @@ const mockData = {
     valuation: { guidelineValue: "₹1.04 Cr" }
   },
   "1234567890ABCD": {
-    lat: 12.9009,
-    lng: 77.4575,
+    lat: 12.9298,
+    lng: 77.5843,
     ownership: { ownerName: "Rajesh Kumar", pendingNewOwner: "Shri A. K. Sharma", khasraNumber: "45/2", mutationStatus: "Pending" },
     tax: { propertyTaxStatus: "Paid", lastPaymentDate: "2026-03-15", amount: "₹4,500" },
     zoning: { zoneType: "Commercial", landUse: "Retail", maxHeight: "15m" },

@@ -3,40 +3,39 @@
   "features": [
     {
       "type": "Feature",
+      "id": "1234567890ABCD",
       "properties": {
         "ulpin": "1234567890ABCD",
-        "ownerName": "Smt. Kavitha Sharma",
+        "ownerName": "Rajesh Kumar",
         "khasraNumber": "45/2",
         "zoneType": "Commercial",
-        "mutationStatus": "Approved"
+        "mutationStatus": "Pending",
+        "lat": 12.9298201,
+        "lng": 77.5842754
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              77.457136,
-              12.900901
+              77.5840522,
+              12.930046
             ],
             [
-              77.457131,
-              12.900839
+              77.5840522,
+              12.9295942
             ],
             [
-              77.458491,
-              12.899207
+              77.5844986,
+              12.9295942
             ],
             [
-              77.458457,
-              12.899636
+              77.5844986,
+              12.930046
             ],
             [
-              77.457502,
-              12.900901
-            ],
-            [
-              77.457136,
-              12.900901
+              77.5840522,
+              12.930046
             ]
           ]
         ]
@@ -44,36 +43,39 @@
     },
     {
       "type": "Feature",
+      "id": "1234567891ABCE",
       "properties": {
         "ulpin": "1234567891ABCE",
-        "ownerName": "yoga",
-        "khasraNumber": "12/1",
+        "ownerName": "Priya Sharma",
+        "khasraNumber": "46/1",
         "zoneType": "Residential",
-        "mutationStatus": "Approved"
+        "mutationStatus": "Pending",
+        "lat": 12.92957305,
+        "lng": 77.5844063
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.45722,
-              30.207593
+              77.5839568,
+              12.9287666
             ],
             [
-              74.45722,
-              30.20701
+              77.5848346,
+              12.9287557
             ],
             [
-              74.458529,
-              30.20701
+              77.5848558,
+              12.9303795
             ],
             [
-              74.458529,
-              30.207593
+              77.583978,
+              12.9303904
             ],
             [
-              74.45722,
-              30.207593
+              77.5839568,
+              12.9287666
             ]
           ]
         ]
@@ -81,35 +83,71 @@
     },
     {
       "type": "Feature",
+      "id": "1234567892ABCF",
       "properties": {
         "ulpin": "1234567892ABCF",
         "ownerName": "Amit Patel",
-        "khasraNumber": "12/2",
-        "zoneType": "Residential"
+        "khasraNumber": "47/3",
+        "zoneType": "Mixed Use",
+        "mutationStatus": "Approved",
+        "lat": 12.9200085181601,
+        "lng": 77.5883909272422
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.45722,
-              30.208142
+              77.5878188,
+              12.9192534
             ],
             [
-              74.45722,
-              30.207593
+              77.5887523,
+              12.9201705
             ],
             [
-              74.45853,
-              30.207593
+              77.5887704,
+              12.9201888
             ],
             [
-              74.45853,
-              30.208142
+              77.588814,
+              12.920217
             ],
             [
-              74.45722,
-              30.208142
+              77.58941,
+              12.92032
+            ],
+            [
+              77.5894044,
+              12.9205603
+            ],
+            [
+              77.5889306,
+              12.9205496
+            ],
+            [
+              77.5888382,
+              12.9205509
+            ],
+            [
+              77.5886485,
+              12.9205535
+            ],
+            [
+              77.5886374,
+              12.9204714
+            ],
+            [
+              77.5880607,
+              12.9200698
+            ],
+            [
+              77.5874998,
+              12.919528
+            ],
+            [
+              77.5878188,
+              12.9192534
             ]
           ]
         ]
@@ -117,35 +155,39 @@
     },
     {
       "type": "Feature",
+      "id": "1234567893ABCG",
       "properties": {
         "ulpin": "1234567893ABCG",
         "ownerName": "Sunita Rao",
         "khasraNumber": "14/1",
-        "zoneType": "Commercial"
+        "zoneType": "Commercial",
+        "mutationStatus": "Approved",
+        "lat": 12.9302240494908,
+        "lng": 77.5841334617202
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.455068,
-              30.209797
+              77.5839953,
+              12.9303688
             ],
             [
-              74.455068,
-              30.207016
+              77.5839979,
+              12.9300837
             ],
             [
-              74.455777,
-              30.207016
+              77.5842729,
+              12.930082
             ],
             [
-              74.455777,
-              30.209797
+              77.5842694,
+              12.930362
             ],
             [
-              74.455068,
-              30.209797
+              77.5839953,
+              12.9303688
             ]
           ]
         ]
@@ -153,35 +195,39 @@
     },
     {
       "type": "Feature",
+      "id": "1234567894ABCH",
       "properties": {
         "ulpin": "1234567894ABCH",
         "ownerName": "Vikram Singh",
         "khasraNumber": "14/2",
-        "zoneType": "Residential"
+        "zoneType": "Residential",
+        "mutationStatus": "Pending",
+        "lat": 12.9334082071522,
+        "lng": 77.5837384776662
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.455777,
-              30.208699
+              77.5838121,
+              12.9336164
             ],
             [
-              74.455777,
-              30.207015
+              77.5835868,
+              12.9334054
             ],
             [
-              74.45722,
-              30.207015
+              77.5837806,
+              12.9332256
             ],
             [
-              74.45722,
-              30.208699
+              77.5838209,
+              12.933257
             ],
             [
-              74.455777,
-              30.208699
+              77.5838121,
+              12.9336164
             ]
           ]
         ]
@@ -189,35 +235,47 @@
     },
     {
       "type": "Feature",
+      "id": "1234567895ABCI",
       "properties": {
         "ulpin": "1234567895ABCI",
         "ownerName": "Ananya Gupta",
         "khasraNumber": "14/3",
-        "zoneType": "Mixed Use"
+        "zoneType": "Mixed Use",
+        "mutationStatus": "Approved",
+        "lat": 12.9239782190532,
+        "lng": 77.5840883606364
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.455777,
-              30.209797
+              77.5839451,
+              12.924161
             ],
             [
-              74.455777,
-              30.208699
+              77.583943,
+              12.9237782
             ],
             [
-              74.45722,
-              30.208699
+              77.5842058,
+              12.9237769
             ],
             [
-              74.45722,
-              30.209797
+              77.5842071,
+              12.9240109
             ],
             [
-              74.455777,
-              30.209797
+              77.5842659,
+              12.9240106
+            ],
+            [
+              77.5842667,
+              12.9241593
+            ],
+            [
+              77.5839451,
+              12.924161
             ]
           ]
         ]
@@ -225,35 +283,35 @@
     },
     {
       "type": "Feature",
+      "id": "1234567896ABCJ",
       "properties": {
         "ulpin": "1234567896ABCJ",
         "ownerName": "Rohan Verma",
         "khasraNumber": "15/1",
-        "zoneType": "Commercial"
+        "zoneType": "Commercial",
+        "mutationStatus": "Approved",
+        "lat": 12.9331698,
+        "lng": 77.5810933666667
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.45722,
-              30.209797
+              77.5808484,
+              12.9330914
             ],
             [
-              74.45722,
-              30.209256
+              77.5813312,
+              12.9330809
             ],
             [
-              74.458534,
-              30.209256
+              77.5811005,
+              12.9333371
             ],
             [
-              74.458534,
-              30.209797
-            ],
-            [
-              74.45722,
-              30.209797
+              77.5808484,
+              12.9330914
             ]
           ]
         ]
@@ -261,36 +319,3310 @@
     },
     {
       "type": "Feature",
+      "id": "1234567897ABCK",
       "properties": {
         "ulpin": "1234567897ABCK",
         "ownerName": "Meenakshi Iyer",
         "khasraNumber": "15/2",
         "zoneType": "Residential",
-        "mutationStatus": "Rejected"
+        "mutationStatus": "Pending",
+        "lat": 12.930485080487,
+        "lng": 77.5910316834011
       },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
           [
             [
-              74.45722,
-              30.209256
+              77.5909513,
+              12.9305873
             ],
             [
-              74.45722,
-              30.208142
+              77.5908923,
+              12.9304566
             ],
             [
-              74.458526,
-              30.208142
+              77.5911041,
+              12.9303756
             ],
             [
-              74.458526,
-              30.209256
+              77.5911658,
+              12.9305403
             ],
             [
-              74.45722,
-              30.209256
+              77.5911256,
+              12.9305664
+            ],
+            [
+              77.5911041,
+              12.9305298
+            ],
+            [
+              77.5909513,
+              12.9305873
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001218407",
+      "properties": {
+        "ulpin": "29572001218407",
+        "ownerName": "Arjun Reddy",
+        "khasraNumber": "149/2",
+        "zoneType": "Residential",
+        "mutationStatus": "Rejected",
+        "lat": 12.9264051,
+        "lng": 77.58847355
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5886999,
+              12.9264632
+            ],
+            [
+              77.5882486,
+              12.9264681
+            ],
+            [
+              77.5882472,
+              12.926347
+            ],
+            [
+              77.5886985,
+              12.9263421
+            ],
+            [
+              77.5886999,
+              12.9264632
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192467",
+      "properties": {
+        "ulpin": "29572001192467",
+        "ownerName": "Ramesh Chandra",
+        "khasraNumber": "167/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.927051,
+        "lng": 77.58830995
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5882635,
+              12.9271853
+            ],
+            [
+              77.5882576,
+              12.9269187
+            ],
+            [
+              77.5883564,
+              12.9269167
+            ],
+            [
+              77.5883623,
+              12.9271833
+            ],
+            [
+              77.5882635,
+              12.9271853
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192468",
+      "properties": {
+        "ulpin": "29572001192468",
+        "ownerName": "Vikramaditya Hegde",
+        "khasraNumber": "168/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9266190428119,
+        "lng": 77.58865863149
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5882884,
+              12.9267215
+            ],
+            [
+              77.5882874,
+              12.9266338
+            ],
+            [
+              77.588732,
+              12.926629
+            ],
+            [
+              77.5887296,
+              12.9264161
+            ],
+            [
+              77.5888662,
+              12.9264147
+            ],
+            [
+              77.5888696,
+              12.9267152
+            ],
+            [
+              77.5882884,
+              12.9267215
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192469",
+      "properties": {
+        "ulpin": "29572001192469",
+        "ownerName": "Vikramaditya Hegde",
+        "khasraNumber": "169/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9274816217662,
+        "lng": 77.588505558636
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5882772,
+              12.9272304
+            ],
+            [
+              77.5883646,
+              12.9272282
+            ],
+            [
+              77.5883701,
+              12.9274313
+            ],
+            [
+              77.5884243,
+              12.9274824
+            ],
+            [
+              77.5888547,
+              12.927471
+            ],
+            [
+              77.5888576,
+              12.9275757
+            ],
+            [
+              77.5883492,
+              12.9275892
+            ],
+            [
+              77.5882857,
+              12.9275411
+            ],
+            [
+              77.5882772,
+              12.9272304
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192470",
+      "properties": {
+        "ulpin": "29572001192470",
+        "ownerName": "Lakshmi Narayanan",
+        "khasraNumber": "170/3",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9272861748975,
+        "lng": 77.5887206553656
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5886289,
+              12.9274304
+            ],
+            [
+              77.5886273,
+              12.927143
+            ],
+            [
+              77.5888124,
+              12.9271419
+            ],
+            [
+              77.588814,
+              12.9274294
+            ],
+            [
+              77.5886289,
+              12.9274304
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192471",
+      "properties": {
+        "ulpin": "29572001192471",
+        "ownerName": "Gurpreet Kaur",
+        "khasraNumber": "171/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9264151246895,
+        "lng": 77.5893027728871
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5891415,
+              12.926476
+            ],
+            [
+              77.58914,
+              12.9263581
+            ],
+            [
+              77.589464,
+              12.9263542
+            ],
+            [
+              77.5894655,
+              12.9264722
+            ],
+            [
+              77.5891415,
+              12.926476
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192472",
+      "properties": {
+        "ulpin": "29572001192472",
+        "ownerName": "Pooja Patel",
+        "khasraNumber": "172/1",
+        "zoneType": "residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9283361075251,
+        "lng": 77.5887156170013
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5884607,
+              12.9289801
+            ],
+            [
+              77.5884106,
+              12.9286873
+            ],
+            [
+              77.5882414,
+              12.9278971
+            ],
+            [
+              77.5889574,
+              12.9278689
+            ],
+            [
+              77.589116,
+              12.9281781
+            ],
+            [
+              77.5892716,
+              12.9284874
+            ],
+            [
+              77.5893015,
+              12.9285469
+            ],
+            [
+              77.5890994,
+              12.928581
+            ],
+            [
+              77.5888356,
+              12.9287422
+            ],
+            [
+              77.5884607,
+              12.9289801
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192474",
+      "properties": {
+        "ulpin": "29572001192474",
+        "ownerName": "Radhika Apte",
+        "khasraNumber": "174/3",
+        "zoneType": "residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9353354594732,
+        "lng": 77.5891841974843
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.589606,
+              12.9355443
+            ],
+            [
+              77.589596,
+              12.9356233
+            ],
+            [
+              77.5893168,
+              12.9358189
+            ],
+            [
+              77.5890845,
+              12.9358465
+            ],
+            [
+              77.5888771,
+              12.9348169
+            ],
+            [
+              77.5892231,
+              12.934796
+            ],
+            [
+              77.5894188,
+              12.9355554
+            ],
+            [
+              77.5896166,
+              12.9355164
+            ],
+            [
+              77.589606,
+              12.9355443
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192482",
+      "properties": {
+        "ulpin": "29572001192482",
+        "ownerName": "Venkatesh Prasad",
+        "khasraNumber": "182/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9327362207499,
+        "lng": 77.58625944017
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5861881,
+              12.9327744
+            ],
+            [
+              77.58619,
+              12.9326948
+            ],
+            [
+              77.5863308,
+              12.932698
+            ],
+            [
+              77.5863288,
+              12.9327777
+            ],
+            [
+              77.5861881,
+              12.9327744
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192484",
+      "properties": {
+        "ulpin": "29572001192484",
+        "ownerName": "Radhika Apte",
+        "khasraNumber": "184/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9289177187626,
+        "lng": 77.5913241457176
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5911176,
+              12.928703
+            ],
+            [
+              77.5913414,
+              12.9286963
+            ],
+            [
+              77.591523,
+              12.9287062
+            ],
+            [
+              77.5915268,
+              12.9291368
+            ],
+            [
+              77.59113,
+              12.9291365
+            ],
+            [
+              77.5911176,
+              12.928703
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192556",
+      "properties": {
+        "ulpin": "29572001192556",
+        "ownerName": "Vikramaditya Hegde",
+        "khasraNumber": "256/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9262893,
+        "lng": 77.5905492
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5906369,
+              12.9262307
+            ],
+            [
+              77.5906367,
+              12.9263483
+            ],
+            [
+              77.5904615,
+              12.9263479
+            ],
+            [
+              77.5904617,
+              12.9262303
+            ],
+            [
+              77.5906369,
+              12.9262307
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192560",
+      "properties": {
+        "ulpin": "29572001192560",
+        "ownerName": "Amitabh Sengupta",
+        "khasraNumber": "260/1",
+        "zoneType": "Commercial",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9245361521424,
+        "lng": 77.5883021671348
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5882118,
+              12.9246296
+            ],
+            [
+              77.5882079,
+              12.9244404
+            ],
+            [
+              77.5883942,
+              12.9244461
+            ],
+            [
+              77.5883969,
+              12.9246289
+            ],
+            [
+              77.5882118,
+              12.9246296
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001192597",
+      "properties": {
+        "ulpin": "29572001192597",
+        "ownerName": "Divya Nair",
+        "khasraNumber": "297/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9295658385894,
+        "lng": 77.5801900567294
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5803882,
+              12.9290091
+            ],
+            [
+              77.5803872,
+              12.9292989
+            ],
+            [
+              77.5803848,
+              12.9299807
+            ],
+            [
+              77.5802937,
+              12.9299804
+            ],
+            [
+              77.5802929,
+              12.9302032
+            ],
+            [
+              77.5800703,
+              12.9302024
+            ],
+            [
+              77.5800711,
+              12.9299768
+            ],
+            [
+              77.5800156,
+              12.9299766
+            ],
+            [
+              77.5799795,
+              12.9299765
+            ],
+            [
+              77.5799824,
+              12.9291818
+            ],
+            [
+              77.5800839,
+              12.9291822
+            ],
+            [
+              77.5800847,
+              12.9289593
+            ],
+            [
+              77.5802994,
+              12.9289601
+            ],
+            [
+              77.5802993,
+              12.9290088
+            ],
+            [
+              77.5803242,
+              12.9290089
+            ],
+            [
+              77.5803882,
+              12.9290091
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195779",
+      "properties": {
+        "ulpin": "29572001195779",
+        "ownerName": "Naveen Jindal",
+        "khasraNumber": "179/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9251409754871,
+        "lng": 77.5890901852945
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889844,
+              12.9250845
+            ],
+            [
+              77.5891929,
+              12.9250794
+            ],
+            [
+              77.589196,
+              12.9251974
+            ],
+            [
+              77.5889875,
+              12.9252026
+            ],
+            [
+              77.5889844,
+              12.9250845
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195780",
+      "properties": {
+        "ulpin": "29572001195780",
+        "ownerName": "Kavita Rao",
+        "khasraNumber": "180/1",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9250261788305,
+        "lng": 77.5890886413744
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889814,
+              12.9249734
+            ],
+            [
+              77.5891928,
+              12.9249678
+            ],
+            [
+              77.5891959,
+              12.925079
+            ],
+            [
+              77.5889844,
+              12.9250845
+            ],
+            [
+              77.5889814,
+              12.9249734
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195781",
+      "properties": {
+        "ulpin": "29572001195781",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "181/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92491505,
+        "lng": 77.58908555
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889783,
+              12.9248623
+            ],
+            [
+              77.5891897,
+              12.9248567
+            ],
+            [
+              77.5891928,
+              12.9249678
+            ],
+            [
+              77.5889814,
+              12.9249734
+            ],
+            [
+              77.5889783,
+              12.9248623
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195782",
+      "properties": {
+        "ulpin": "29572001195782",
+        "ownerName": "Lakshmi Narayanan",
+        "khasraNumber": "182/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9248039456358,
+        "lng": 77.5890824744601
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889752,
+              12.9247512
+            ],
+            [
+              77.5891867,
+              12.9247456
+            ],
+            [
+              77.5891897,
+              12.9248567
+            ],
+            [
+              77.5889783,
+              12.9248623
+            ],
+            [
+              77.5889752,
+              12.9247512
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195783",
+      "properties": {
+        "ulpin": "29572001195783",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "183/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9265195210542,
+        "lng": 77.5889675753071
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889231,
+              12.9266361
+            ],
+            [
+              77.5889202,
+              12.926404
+            ],
+            [
+              77.589012,
+              12.9264029
+            ],
+            [
+              77.589015,
+              12.926635
+            ],
+            [
+              77.5889231,
+              12.9266361
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195784",
+      "properties": {
+        "ulpin": "29572001195784",
+        "ownerName": "Naveen Jindal",
+        "khasraNumber": "184/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9269391247397,
+        "lng": 77.5889415024696
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5888894,
+              12.9271204
+            ],
+            [
+              77.5888863,
+              12.9267587
+            ],
+            [
+              77.5889936,
+              12.9267578
+            ],
+            [
+              77.5889967,
+              12.9271196
+            ],
+            [
+              77.5888894,
+              12.9271204
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195785",
+      "properties": {
+        "ulpin": "29572001195785",
+        "ownerName": "Suresh Gowda",
+        "khasraNumber": "185/2",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9261294243255,
+        "lng": 77.5891282137662
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892329,
+              12.9261877
+            ],
+            [
+              77.5890281,
+              12.9261949
+            ],
+            [
+              77.5890235,
+              12.9260712
+            ],
+            [
+              77.5892283,
+              12.9260639
+            ],
+            [
+              77.5892329,
+              12.9261877
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195786",
+      "properties": {
+        "ulpin": "29572001195786",
+        "ownerName": "Naveen Jindal",
+        "khasraNumber": "186/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92600565,
+        "lng": 77.5891236
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892283,
+              12.9260639
+            ],
+            [
+              77.5890235,
+              12.9260712
+            ],
+            [
+              77.5890189,
+              12.9259474
+            ],
+            [
+              77.5892237,
+              12.9259401
+            ],
+            [
+              77.5892283,
+              12.9260639
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195787",
+      "properties": {
+        "ulpin": "29572001195787",
+        "ownerName": "Rajesh Kumar",
+        "khasraNumber": "187/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92588185,
+        "lng": 77.58911895
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892237,
+              12.9259401
+            ],
+            [
+              77.5890189,
+              12.9259474
+            ],
+            [
+              77.5890142,
+              12.9258236
+            ],
+            [
+              77.589219,
+              12.9258163
+            ],
+            [
+              77.5892237,
+              12.9259401
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195788",
+      "properties": {
+        "ulpin": "29572001195788",
+        "ownerName": "Lakshmi Narayanan",
+        "khasraNumber": "188/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9257580756745,
+        "lng": 77.5891142862338
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.589219,
+              12.9258163
+            ],
+            [
+              77.5890142,
+              12.9258236
+            ],
+            [
+              77.5890096,
+              12.9256998
+            ],
+            [
+              77.5892144,
+              12.9256926
+            ],
+            [
+              77.589219,
+              12.9258163
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195789",
+      "properties": {
+        "ulpin": "29572001195789",
+        "ownerName": "Divya Nair",
+        "khasraNumber": "189/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9256343,
+        "lng": 77.5891097
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892144,
+              12.9256926
+            ],
+            [
+              77.5890096,
+              12.9256998
+            ],
+            [
+              77.589005,
+              12.925576
+            ],
+            [
+              77.5892098,
+              12.9255688
+            ],
+            [
+              77.5892144,
+              12.9256926
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195790",
+      "properties": {
+        "ulpin": "29572001195790",
+        "ownerName": "Radhika Apte",
+        "khasraNumber": "190/3",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9255105243255,
+        "lng": 77.5891051137662
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892098,
+              12.9255688
+            ],
+            [
+              77.589005,
+              12.925576
+            ],
+            [
+              77.5890004,
+              12.9254523
+            ],
+            [
+              77.5892052,
+              12.925445
+            ],
+            [
+              77.5892098,
+              12.9255688
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195791",
+      "properties": {
+        "ulpin": "29572001195791",
+        "ownerName": "Karthik Subbaraj",
+        "khasraNumber": "191/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92538675,
+        "lng": 77.5891005
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892052,
+              12.925445
+            ],
+            [
+              77.5890004,
+              12.9254523
+            ],
+            [
+              77.5889958,
+              12.9253285
+            ],
+            [
+              77.5892006,
+              12.9253212
+            ],
+            [
+              77.5892052,
+              12.925445
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195792",
+      "properties": {
+        "ulpin": "29572001195792",
+        "ownerName": "Ramesh Chandra",
+        "khasraNumber": "192/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92526295,
+        "lng": 77.5890959
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5892006,
+              12.9253212
+            ],
+            [
+              77.5889958,
+              12.9253285
+            ],
+            [
+              77.5889912,
+              12.9252047
+            ],
+            [
+              77.589196,
+              12.9251974
+            ],
+            [
+              77.5892006,
+              12.9253212
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195793",
+      "properties": {
+        "ulpin": "29572001195793",
+        "ownerName": "Keshav",
+        "khasraNumber": "193/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9283185090836,
+        "lng": 77.588628998123
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5884937,
+              12.9285539
+            ],
+            [
+              77.5884937,
+              12.9284015
+            ],
+            [
+              77.5884507,
+              12.9284015
+            ],
+            [
+              77.5884477,
+              12.9281772
+            ],
+            [
+              77.5885427,
+              12.9281713
+            ],
+            [
+              77.5885458,
+              12.928261
+            ],
+            [
+              77.5886196,
+              12.9282586
+            ],
+            [
+              77.5886165,
+              12.9281689
+            ],
+            [
+              77.5888435,
+              12.9281615
+            ],
+            [
+              77.5888311,
+              12.9283775
+            ],
+            [
+              77.5886041,
+              12.9283895
+            ],
+            [
+              77.5886129,
+              12.9285477
+            ],
+            [
+              77.5884937,
+              12.9285539
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195794",
+      "properties": {
+        "ulpin": "29572001195794",
+        "ownerName": "Venkatesh Prasad",
+        "khasraNumber": "194/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9285720280597,
+        "lng": 77.5887667875349
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5887544,
+              12.9286825
+            ],
+            [
+              77.5886612,
+              12.9285247
+            ],
+            [
+              77.5887758,
+              12.9284573
+            ],
+            [
+              77.5888737,
+              12.9286253
+            ],
+            [
+              77.5887544,
+              12.9286825
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195795",
+      "properties": {
+        "ulpin": "29572001195795",
+        "ownerName": "Rajesh Kumar",
+        "khasraNumber": "195/4",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9284076526656,
+        "lng": 77.5890678710374
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.589069,
+              12.9285258
+            ],
+            [
+              77.5889562,
+              12.9283529
+            ],
+            [
+              77.589071,
+              12.9282906
+            ],
+            [
+              77.5891774,
+              12.9284634
+            ],
+            [
+              77.589069,
+              12.9285258
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195796",
+      "properties": {
+        "ulpin": "29572001195796",
+        "ownerName": "Amitabh Sengupta",
+        "khasraNumber": "196/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9284926593961,
+        "lng": 77.5888882129006
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5888849,
+              12.9286023
+            ],
+            [
+              77.5887916,
+              12.9284409
+            ],
+            [
+              77.5888909,
+              12.9283842
+            ],
+            [
+              77.5889852,
+              12.9285416
+            ],
+            [
+              77.5888849,
+              12.9286023
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195797",
+      "properties": {
+        "ulpin": "29572001195797",
+        "ownerName": "Divya Nair",
+        "khasraNumber": "197/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9279665753034,
+        "lng": 77.5884846796957
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5883688,
+              12.9280159
+            ],
+            [
+              77.5883675,
+              12.9279202
+            ],
+            [
+              77.5886006,
+              12.9279173
+            ],
+            [
+              77.5886019,
+              12.9280129
+            ],
+            [
+              77.5883688,
+              12.9280159
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195798",
+      "properties": {
+        "ulpin": "29572001195798",
+        "ownerName": "Suresh Gowda",
+        "khasraNumber": "198/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9281158970922,
+        "lng": 77.58853127424
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5884266,
+              12.9281561
+            ],
+            [
+              77.5884243,
+              12.9280817
+            ],
+            [
+              77.588636,
+              12.9280757
+            ],
+            [
+              77.5886382,
+              12.9281501
+            ],
+            [
+              77.5884266,
+              12.9281561
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195799",
+      "properties": {
+        "ulpin": "29572001195799",
+        "ownerName": "Harpreet Singh",
+        "khasraNumber": "199/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92810575,
+        "lng": 77.5887072
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5886535,
+              12.9281461
+            ],
+            [
+              77.5886535,
+              12.9280654
+            ],
+            [
+              77.5887609,
+              12.9280654
+            ],
+            [
+              77.5887609,
+              12.9281461
+            ],
+            [
+              77.5886535,
+              12.9281461
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195800",
+      "properties": {
+        "ulpin": "29572001195800",
+        "ownerName": "Radhika Apte",
+        "khasraNumber": "200/1",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9287100914839,
+        "lng": 77.5885993673252
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5885905,
+              12.9288252
+            ],
+            [
+              77.5884954,
+              12.9286548
+            ],
+            [
+              77.5886083,
+              12.928595
+            ],
+            [
+              77.5887033,
+              12.9287654
+            ],
+            [
+              77.5885905,
+              12.9288252
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195801",
+      "properties": {
+        "ulpin": "29572001195801",
+        "ownerName": "Gurpreet Kaur",
+        "khasraNumber": "201/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92825875,
+        "lng": 77.58891285
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.588853,
+              12.9283021
+            ],
+            [
+              77.588853,
+              12.9282154
+            ],
+            [
+              77.5889727,
+              12.9282154
+            ],
+            [
+              77.5889727,
+              12.9283021
+            ],
+            [
+              77.588853,
+              12.9283021
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195802",
+      "properties": {
+        "ulpin": "29572001195802",
+        "ownerName": "Harpreet Singh",
+        "khasraNumber": "202/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.92803665,
+        "lng": 77.58891905
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5889262,
+              12.9281444
+            ],
+            [
+              77.5888311,
+              12.927971
+            ],
+            [
+              77.5889119,
+              12.9279289
+            ],
+            [
+              77.589007,
+              12.9281023
+            ],
+            [
+              77.5889262,
+              12.9281444
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001195803",
+      "properties": {
+        "ulpin": "29572001195803",
+        "ownerName": "Suresh Gowda",
+        "khasraNumber": "203/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9279639930616,
+        "lng": 77.5887230255611
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5886678,
+              12.9280071
+            ],
+            [
+              77.5886708,
+              12.9279174
+            ],
+            [
+              77.5887783,
+              12.9279209
+            ],
+            [
+              77.5887752,
+              12.9280106
+            ],
+            [
+              77.5886678,
+              12.9280071
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199487",
+      "properties": {
+        "ulpin": "29572001199487",
+        "ownerName": "Arjun Reddy",
+        "khasraNumber": "287/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9345306240096,
+        "lng": 77.5813025087818
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5813239,
+              12.9345992
+            ],
+            [
+              77.581235,
+              12.9345275
+            ],
+            [
+              77.5812685,
+              12.934488
+            ],
+            [
+              77.5812704,
+              12.9344895
+            ],
+            [
+              77.5812795,
+              12.9344787
+            ],
+            [
+              77.581296,
+              12.934492
+            ],
+            [
+              77.5813154,
+              12.9344692
+            ],
+            [
+              77.5813558,
+              12.9345018
+            ],
+            [
+              77.5813273,
+              12.9345354
+            ],
+            [
+              77.5813574,
+              12.9345598
+            ],
+            [
+              77.5813239,
+              12.9345992
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199488",
+      "properties": {
+        "ulpin": "29572001199488",
+        "ownerName": "Venkatesh Prasad",
+        "khasraNumber": "288/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9323148523644,
+        "lng": 77.5833689861004
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.58332,
+              12.9324565
+            ],
+            [
+              77.5833209,
+              12.9323867
+            ],
+            [
+              77.5832696,
+              12.9323861
+            ],
+            [
+              77.5832707,
+              12.9322948
+            ],
+            [
+              77.5833532,
+              12.9322958
+            ],
+            [
+              77.5833537,
+              12.9322576
+            ],
+            [
+              77.5832712,
+              12.9322566
+            ],
+            [
+              77.5832721,
+              12.9321823
+            ],
+            [
+              77.5834511,
+              12.9321844
+            ],
+            [
+              77.5834477,
+              12.932458
+            ],
+            [
+              77.58332,
+              12.9324565
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199489",
+      "properties": {
+        "ulpin": "29572001199489",
+        "ownerName": "Harpreet Singh",
+        "khasraNumber": "289/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9338625697323,
+        "lng": 77.5811724568018
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5811366,
+              12.9338905
+            ],
+            [
+              77.5811156,
+              12.9338659
+            ],
+            [
+              77.5810815,
+              12.9338935
+            ],
+            [
+              77.5810469,
+              12.933853
+            ],
+            [
+              77.5810879,
+              12.9338199
+            ],
+            [
+              77.5811215,
+              12.9338593
+            ],
+            [
+              77.5811405,
+              12.9338439
+            ],
+            [
+              77.5811069,
+              12.9338045
+            ],
+            [
+              77.5811626,
+              12.9337627
+            ],
+            [
+              77.581267,
+              12.9338612
+            ],
+            [
+              77.5812284,
+              12.9338924
+            ],
+            [
+              77.5812566,
+              12.9339255
+            ],
+            [
+              77.5812056,
+              12.9339701
+            ],
+            [
+              77.5811438,
+              12.9339102
+            ],
+            [
+              77.581187,
+              12.9338752
+            ],
+            [
+              77.5811741,
+              12.9338601
+            ],
+            [
+              77.5811366,
+              12.9338905
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199490",
+      "properties": {
+        "ulpin": "29572001199490",
+        "ownerName": "Aditi Rao",
+        "khasraNumber": "290/3",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.93323095,
+        "lng": 77.58329605
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5833114,
+              12.9333685
+            ],
+            [
+              77.5831545,
+              12.9332203
+            ],
+            [
+              77.5832807,
+              12.9330934
+            ],
+            [
+              77.5834376,
+              12.9332416
+            ],
+            [
+              77.5833114,
+              12.9333685
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199495",
+      "properties": {
+        "ulpin": "29572001199495",
+        "ownerName": "Ramesh Chandra",
+        "khasraNumber": "295/4",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.93360945,
+        "lng": 77.58089885
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5808863,
+              12.9336964
+            ],
+            [
+              77.5808096,
+              12.9336217
+            ],
+            [
+              77.5809114,
+              12.9335225
+            ],
+            [
+              77.5809881,
+              12.9335972
+            ],
+            [
+              77.5808863,
+              12.9336964
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199497",
+      "properties": {
+        "ulpin": "29572001199497",
+        "ownerName": "Sneha Kulkarni",
+        "khasraNumber": "297/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.93380215,
+        "lng": 77.5822235
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.582239,
+              12.9338847
+            ],
+            [
+              77.5821405,
+              12.9337799
+            ],
+            [
+              77.582208,
+              12.9337196
+            ],
+            [
+              77.5823065,
+              12.9338244
+            ],
+            [
+              77.582239,
+              12.9338847
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199498",
+      "properties": {
+        "ulpin": "29572001199498",
+        "ownerName": "Karthik Subbaraj",
+        "khasraNumber": "298/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9315076,
+        "lng": 77.5817324
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5816436,
+              12.9315739
+            ],
+            [
+              77.5816481,
+              12.9314359
+            ],
+            [
+              77.5818212,
+              12.9314413
+            ],
+            [
+              77.5818167,
+              12.9315793
+            ],
+            [
+              77.5816436,
+              12.9315739
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199500",
+      "properties": {
+        "ulpin": "29572001199500",
+        "ownerName": "Sneha Kulkarni",
+        "khasraNumber": "300/1",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9326588248557,
+        "lng": 77.5831573055441
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5830594,
+              12.9328085
+            ],
+            [
+              77.583057,
+              12.9325107
+            ],
+            [
+              77.5832552,
+              12.9325091
+            ],
+            [
+              77.5832576,
+              12.932807
+            ],
+            [
+              77.5830594,
+              12.9328085
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199502",
+      "properties": {
+        "ulpin": "29572001199502",
+        "ownerName": "Pooja Patel",
+        "khasraNumber": "302/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9331211744719,
+        "lng": 77.582822758617
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5827734,
+              12.9331719
+            ],
+            [
+              77.5827702,
+              12.9330736
+            ],
+            [
+              77.5828721,
+              12.9330704
+            ],
+            [
+              77.5828753,
+              12.9331688
+            ],
+            [
+              77.5827734,
+              12.9331719
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199504",
+      "properties": {
+        "ulpin": "29572001199504",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "304/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9349176,
+        "lng": 77.58243465
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5823585,
+              12.9349529
+            ],
+            [
+              77.5823617,
+              12.9348764
+            ],
+            [
+              77.5825108,
+              12.9348823
+            ],
+            [
+              77.5825076,
+              12.9349588
+            ],
+            [
+              77.5823585,
+              12.9349529
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199506",
+      "properties": {
+        "ulpin": "29572001199506",
+        "ownerName": "Pooja Patel",
+        "khasraNumber": "306/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9312936,
+        "lng": 77.58199815
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5819334,
+              12.9313565
+            ],
+            [
+              77.581931,
+              12.9312332
+            ],
+            [
+              77.5820629,
+              12.9312307
+            ],
+            [
+              77.5820653,
+              12.931354
+            ],
+            [
+              77.5819334,
+              12.9313565
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199508",
+      "properties": {
+        "ulpin": "29572001199508",
+        "ownerName": "Meenakshi Sundaram",
+        "khasraNumber": "308/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.93140945,
+        "lng": 77.5837462
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5837103,
+              12.9314315
+            ],
+            [
+              77.5837114,
+              12.9313857
+            ],
+            [
+              77.5837821,
+              12.9313874
+            ],
+            [
+              77.583781,
+              12.9314332
+            ],
+            [
+              77.5837103,
+              12.9314315
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199509",
+      "properties": {
+        "ulpin": "29572001199509",
+        "ownerName": "Ramesh Chandra",
+        "khasraNumber": "309/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9317738392096,
+        "lng": 77.5829024802822
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5828633,
+              12.9318492
+            ],
+            [
+              77.5828585,
+              12.931701
+            ],
+            [
+              77.5829416,
+              12.9316984
+            ],
+            [
+              77.5829465,
+              12.9318467
+            ],
+            [
+              77.5828633,
+              12.9318492
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199510",
+      "properties": {
+        "ulpin": "29572001199510",
+        "ownerName": "Priya Sharma",
+        "khasraNumber": "310/3",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.93312445,
+        "lng": 77.5850261
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5849301,
+              12.9332082
+            ],
+            [
+              77.5849269,
+              12.9330443
+            ],
+            [
+              77.5851221,
+              12.9330407
+            ],
+            [
+              77.5851253,
+              12.9332046
+            ],
+            [
+              77.5849301,
+              12.9332082
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199514",
+      "properties": {
+        "ulpin": "29572001199514",
+        "ownerName": "Pooja Patel",
+        "khasraNumber": "314/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9310923,
+        "lng": 77.581726
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5816844,
+              12.9311181
+            ],
+            [
+              77.5816838,
+              12.9310674
+            ],
+            [
+              77.5817676,
+              12.9310665
+            ],
+            [
+              77.5817682,
+              12.9311172
+            ],
+            [
+              77.5816844,
+              12.9311181
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199516",
+      "properties": {
+        "ulpin": "29572001199516",
+        "ownerName": "Amitabh Sengupta",
+        "khasraNumber": "316/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9346599,
+        "lng": 77.58076535
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.580774,
+              12.9347401
+            ],
+            [
+              77.5806835,
+              12.934648
+            ],
+            [
+              77.5807567,
+              12.9345797
+            ],
+            [
+              77.5808472,
+              12.9346718
+            ],
+            [
+              77.580774,
+              12.9347401
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199519",
+      "properties": {
+        "ulpin": "29572001199519",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "319/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9344604093459,
+        "lng": 77.584243875242
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5841771,
+              12.9345375
+            ],
+            [
+              77.5841749,
+              12.9343852
+            ],
+            [
+              77.5843106,
+              12.9343833
+            ],
+            [
+              77.5843129,
+              12.9345356
+            ],
+            [
+              77.5841771,
+              12.9345375
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199521",
+      "properties": {
+        "ulpin": "29572001199521",
+        "ownerName": "Vikramaditya Hegde",
+        "khasraNumber": "321/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9315159,
+        "lng": 77.5824158
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5823461,
+              12.9315709
+            ],
+            [
+              77.5823443,
+              12.9314632
+            ],
+            [
+              77.5824855,
+              12.9314609
+            ],
+            [
+              77.5824873,
+              12.9315686
+            ],
+            [
+              77.5823461,
+              12.9315709
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199523",
+      "properties": {
+        "ulpin": "29572001199523",
+        "ownerName": "Ananya Deshmukh",
+        "khasraNumber": "323/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.93396635,
+        "lng": 77.5811585
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5811764,
+              12.9340065
+            ],
+            [
+              77.5811187,
+              12.933946
+            ],
+            [
+              77.5811406,
+              12.9339262
+            ],
+            [
+              77.5811983,
+              12.9339867
+            ],
+            [
+              77.5811764,
+              12.9340065
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199525",
+      "properties": {
+        "ulpin": "29572001199525",
+        "ownerName": "Divya Nair",
+        "khasraNumber": "325/2",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9337093225993,
+        "lng": 77.5815876770149
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5815617,
+              12.9337942
+            ],
+            [
+              77.5814933,
+              12.933728
+            ],
+            [
+              77.5815329,
+              12.9336891
+            ],
+            [
+              77.5815398,
+              12.9336958
+            ],
+            [
+              77.5816068,
+              12.93363
+            ],
+            [
+              77.5816011,
+              12.9336245
+            ],
+            [
+              77.5816105,
+              12.9336153
+            ],
+            [
+              77.5816211,
+              12.9336256
+            ],
+            [
+              77.5816151,
+              12.9336315
+            ],
+            [
+              77.5816644,
+              12.9336792
+            ],
+            [
+              77.5816685,
+              12.9336751
+            ],
+            [
+              77.5816843,
+              12.9336904
+            ],
+            [
+              77.581639,
+              12.9337349
+            ],
+            [
+              77.5816304,
+              12.9337266
+            ],
+            [
+              77.5815617,
+              12.9337942
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199526",
+      "properties": {
+        "ulpin": "29572001199526",
+        "ownerName": "Pooja Patel",
+        "khasraNumber": "326/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9341912835133,
+        "lng": 77.5841926251794
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5841513,
+              12.9342666
+            ],
+            [
+              77.584151,
+              12.9342371
+            ],
+            [
+              77.5841197,
+              12.9342374
+            ],
+            [
+              77.584119,
+              12.9341687
+            ],
+            [
+              77.5841504,
+              12.9341684
+            ],
+            [
+              77.5841498,
+              12.9341136
+            ],
+            [
+              77.5842501,
+              12.9341127
+            ],
+            [
+              77.5842516,
+              12.9342657
+            ],
+            [
+              77.5841513,
+              12.9342666
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199527",
+      "properties": {
+        "ulpin": "29572001199527",
+        "ownerName": "Rajesh Kumar",
+        "khasraNumber": "327/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9319872247028,
+        "lng": 77.5836760435492
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5836378,
+              12.9320349
+            ],
+            [
+              77.5836395,
+              12.9319383
+            ],
+            [
+              77.5837143,
+              12.9319396
+            ],
+            [
+              77.5837126,
+              12.9320361
+            ],
+            [
+              77.5836378,
+              12.9320349
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199529",
+      "properties": {
+        "ulpin": "29572001199529",
+        "ownerName": "Meenakshi Sundaram",
+        "khasraNumber": "329/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.934594268987,
+        "lng": 77.5819128815034
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5819325,
+              12.9347483
+            ],
+            [
+              77.5817556,
+              12.9345697
+            ],
+            [
+              77.5818932,
+              12.9344402
+            ],
+            [
+              77.5820702,
+              12.9346189
+            ],
+            [
+              77.5819325,
+              12.9347483
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199533",
+      "properties": {
+        "ulpin": "29572001199533",
+        "ownerName": "Aditi Rao",
+        "khasraNumber": "333/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9339893,
+        "lng": 77.5808462
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5808266,
+              12.9340682
+            ],
+            [
+              77.5807643,
+              12.9340042
+            ],
+            [
+              77.5808658,
+              12.9339104
+            ],
+            [
+              77.5809281,
+              12.9339744
+            ],
+            [
+              77.5808266,
+              12.9340682
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199540",
+      "properties": {
+        "ulpin": "29572001199540",
+        "ownerName": "Meenakshi Sundaram",
+        "khasraNumber": "340/1",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.9332997604533,
+        "lng": 77.5814131623224
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.581373,
+              12.9333743
+            ],
+            [
+              77.5813364,
+              12.9333385
+            ],
+            [
+              77.5814533,
+              12.9332252
+            ],
+            [
+              77.5814899,
+              12.9332611
+            ],
+            [
+              77.581373,
+              12.9333743
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199541",
+      "properties": {
+        "ulpin": "29572001199541",
+        "ownerName": "Lakshmi Narayanan",
+        "khasraNumber": "341/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.934957613635,
+        "lng": 77.5835829978545
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5835073,
+              12.9350006
+            ],
+            [
+              77.5835041,
+              12.9349147
+            ],
+            [
+              77.5836586,
+              12.9349092
+            ],
+            [
+              77.5836619,
+              12.9349951
+            ],
+            [
+              77.5836175,
+              12.9349966
+            ],
+            [
+              77.5836179,
+              12.9350081
+            ],
+            [
+              77.5835495,
+              12.9350106
+            ],
+            [
+              77.5835491,
+              12.9349991
+            ],
+            [
+              77.5835073,
+              12.9350006
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199542",
+      "properties": {
+        "ulpin": "29572001199542",
+        "ownerName": "Gurpreet Kaur",
+        "khasraNumber": "342/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9326817,
+        "lng": 77.58285215
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5828005,
+              12.9328248
+            ],
+            [
+              77.5827982,
+              12.9325394
+            ],
+            [
+              77.5829038,
+              12.9325386
+            ],
+            [
+              77.5829061,
+              12.932824
+            ],
+            [
+              77.5828005,
+              12.9328248
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199543",
+      "properties": {
+        "ulpin": "29572001199543",
+        "ownerName": "Radhika Apte",
+        "khasraNumber": "343/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.931603874747,
+        "lng": 77.5837608435743
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5837191,
+              12.9316564
+            ],
+            [
+              77.5837207,
+              12.9315502
+            ],
+            [
+              77.5838026,
+              12.9315514
+            ],
+            [
+              77.583801,
+              12.9316575
+            ],
+            [
+              77.5837191,
+              12.9316564
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199547",
+      "properties": {
+        "ulpin": "29572001199547",
+        "ownerName": "Priya Sharma",
+        "khasraNumber": "347/4",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9314620560849,
+        "lng": 77.5837493251807
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5837148,
+              12.9314878
+            ],
+            [
+              77.5837143,
+              12.931437
+            ],
+            [
+              77.5837838,
+              12.9314363
+            ],
+            [
+              77.5837844,
+              12.9314871
+            ],
+            [
+              77.5837148,
+              12.9314878
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199549",
+      "properties": {
+        "ulpin": "29572001199549",
+        "ownerName": "Aditi Rao",
+        "khasraNumber": "349/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9331282341217,
+        "lng": 77.5820659308424
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5820592,
+              12.9331752
+            ],
+            [
+              77.5820174,
+              12.9331255
+            ],
+            [
+              77.5820726,
+              12.9330813
+            ],
+            [
+              77.5821145,
+              12.9331309
+            ],
+            [
+              77.5820592,
+              12.9331752
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199550",
+      "properties": {
+        "ulpin": "29572001199550",
+        "ownerName": "Kavita Rao",
+        "khasraNumber": "350/3",
+        "zoneType": "Residential",
+        "taxStatus": "Pending",
+        "mutationStatus": "Approved",
+        "lat": 12.931414074443,
+        "lng": 77.5813569900312
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5812988,
+              12.9314595
+            ],
+            [
+              77.581302,
+              12.931365
+            ],
+            [
+              77.5814152,
+              12.9313687
+            ],
+            [
+              77.581412,
+              12.9314631
+            ],
+            [
+              77.5812988,
+              12.9314595
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199552",
+      "properties": {
+        "ulpin": "29572001199552",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "352/1",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9340338421779,
+        "lng": 77.5837271056091
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5838226,
+              12.9341068
+            ],
+            [
+              77.5835782,
+              12.9340135
+            ],
+            [
+              77.5835799,
+              12.9339886
+            ],
+            [
+              77.5836602,
+              12.9339979
+            ],
+            [
+              77.5838197,
+              12.9339976
+            ],
+            [
+              77.5838226,
+              12.9341068
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199553",
+      "properties": {
+        "ulpin": "29572001199553",
+        "ownerName": "Deepak Verma",
+        "khasraNumber": "353/2",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9310741,
+        "lng": 77.5819914
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5819286,
+              12.9311255
+            ],
+            [
+              77.5819262,
+              12.9310256
+            ],
+            [
+              77.5820542,
+              12.9310227
+            ],
+            [
+              77.5820566,
+              12.9311226
+            ],
+            [
+              77.5819286,
+              12.9311255
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "29572001199554",
+      "properties": {
+        "ulpin": "29572001199554",
+        "ownerName": "Lakshmi Narayanan",
+        "khasraNumber": "354/3",
+        "zoneType": "Residential",
+        "taxStatus": "Paid",
+        "mutationStatus": "Approved",
+        "lat": 12.9348763,
+        "lng": 77.5816227
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              77.5816336,
+              12.934972
+            ],
+            [
+              77.5815249,
+              12.9348627
+            ],
+            [
+              77.5816118,
+              12.9347806
+            ],
+            [
+              77.5817205,
+              12.9348899
+            ],
+            [
+              77.5816336,
+              12.934972
             ]
           ]
         ]
