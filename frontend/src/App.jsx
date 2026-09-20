@@ -1,4 +1,14 @@
 import { useState, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useLocation,
+  Navigate,
+  Outlet
+} from "react-router-dom";
 import { useTheme } from "./context/ThemeContext";
 import LandingPage from "./components/LandingPage";
 import MapDashboard from "./components/MapDashboard";
@@ -10,120 +20,86 @@ import AdminLogin from "./components/AdminLogin";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 import ThemeToggle from "./components/ThemeToggle";
 
-function App() {
-  const { isDark } = useTheme();
-  const [selectedUlpIn, setSelectedUlpIn] = useState(null);
-  const [selectedParcelData, setSelectedParcelData] = useState(null);
-  const [isParcelLoading, setIsParcelLoading] = useState(false);
-  const [mapInstance, setMapInstance] = useState(null);
-  const [currentView, setCurrentView] = useState("landing"); // "landing" | "citizen" | "admin"
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(
-    () => localStorage.getItem("landstack_admin_auth") === "true"
+/**
+ * Stark Terminal-style 404 Page
+ * Preserves the Palantir / SpaceX dark minimalist aesthetic
+ */
+function NotFoundPage() {
+  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-black text-white px-6 font-mono selection:bg-emerald-500 selection:text-black">
+      <div className="max-w-md w-full border border-neutral-800 bg-[#080808] p-8 space-y-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
+            <span className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+              KERNEL_ALERT
+            </span>
+          </div>
+          <span className="text-[10px] text-neutral-600">ERR_CODE: 404</span>
+        </div>
+
+        <div className="space-y-2">
+          <h1 className="text-2xl font-black text-white tracking-tight">404: SECTOR_NOT_FOUND</h1>
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            The requested coordinate or partition does not resolve to an active statutory cadastre
+            pathway.
+          </p>
+        </div>
+
+        <div className="border border-neutral-800 bg-neutral-950 p-3 text-[11px] text-emerald-400 font-mono">
+          &gt; ROUTE_CHECK: UNKNOWN_VECTOR
+          <br />
+          &gt; STATUS: EXEC_ABORT
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate("/", { replace: true })}
+          className="w-full border border-white bg-transparent py-3 text-xs font-bold uppercase tracking-[0.2em] text-white hover:bg-white hover:text-black transition-all duration-200 cursor-pointer text-center"
+        >
+          [ RETURN TO ORBIT / ]
+        </button>
+      </div>
+    </div>
   );
-  const [isMutationModalOpen, setIsMutationModalOpen] = useState(false);
-  const [mutationModalUlpin, setMutationModalUlpin] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [toastMessage, setToastMessage] = useState(null);
+}
 
-  // Auto-dismiss toast notification after 4 seconds
-  useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 4000);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
-
-  // Handle parcel selection with hydration data and loading flag
-  const handleParcelSelect = (ulpin, data = null, loading = false) => {
-    setSelectedUlpIn(ulpin);
-    setSelectedParcelData(data);
-    setIsParcelLoading(loading);
-  };
-
-  // Auto-Refresh callback: re-hydrates current parcel from backend and syncs sidebar & canvas
-  const refreshCurrentParcel = async (targetUlpin) => {
-    const ulpinToFetch = targetUlpin || selectedUlpIn;
-    if (!ulpinToFetch) return null;
-
-    try {
-      setIsParcelLoading(true);
-      const cleanUlpin = String(ulpinToFetch).replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
-      let res = await fetch(`/api/parcel/${cleanUlpin}?t=${Date.now()}`);
-      if (!res.ok && res.status === 404) {
-        res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
-      }
-      if (res.ok) {
-        const json = await res.json();
-        const freshData = json.data || json;
-        const parcelObj = { ulpin: freshData.ulpin || cleanUlpin, ...freshData };
-        setSelectedUlpIn(parcelObj.ulpin || cleanUlpin);
-        setSelectedParcelData(parcelObj);
-        setRefreshKey((prev) => prev + 1);
-        return parcelObj;
-      }
-    } catch (err) {
-      console.error("Failed to auto-refresh parcel:", err);
-    } finally {
-      setIsParcelLoading(false);
-    }
-    return null;
-  };
-
-  // Switch to citizen map view and locate parcel
-  const handleInspectParcel = (ulpin, data = null) => {
-    setSelectedUlpIn(ulpin);
-    setSelectedParcelData(data);
-    setIsParcelLoading(false);
-    setRefreshKey((prev) => prev + 1);
-    setCurrentView("citizen");
-  };
-
-  // Open mutation application modal
-  const handleOpenMutationModal = (targetUlpin) => {
-    setMutationModalUlpin(targetUlpin || selectedUlpIn || "");
-    setIsMutationModalOpen(true);
-  };
-
-  // Handle successful mutation submission
-  const handleMutationSuccess = async (_data, appliedUlpin) => {
-    const targetUlpin = appliedUlpin || selectedUlpIn;
-    if (targetUlpin) {
-      await refreshCurrentParcel(targetUlpin);
-    }
-    setRefreshKey((prev) => prev + 1);
-    setToastMessage("Mutation Successful: Record of Rights Updated");
-  };
-
-  const [adminUser, setAdminUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem("landstack_admin_user");
-      return stored ? JSON.parse(stored) : { name: "Shri R. K. Verma", role: "Tahsildar / Sub-Registrar" };
-    } catch {
-      return { name: "Shri R. K. Verma", role: "Tahsildar / Sub-Registrar" };
-    }
-  });
+/**
+ * Shared Dashboard Layout for /citizen and /admin routes.
+ * Completely isolates the LandingPage (which stays full-bleed with no layout wrapper).
+ */
+function DashboardLayout({
+  mapInstance,
+  selectedUlpIn,
+  handleParcelSelect,
+  handleOpenMutationModal,
+  isAdminLoggedIn,
+  adminUser,
+  handleAdminLogout,
+  isMutationModalOpen,
+  mutationModalUlpin,
+  setIsMutationModalOpen,
+  handleMutationSuccess,
+  refreshCurrentParcel,
+  toastMessage,
+  setToastMessage
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleAdminLogout = () => {
-    setIsAdminLoggedIn(false);
-    setAdminUser(null);
-    localStorage.removeItem("landstack_admin_auth");
-    localStorage.removeItem("landstack_admin_user");
-    setCurrentView("citizen");
-  };
-
-  // If in landing view, render full dedicated Landing Page
-  if (currentView === "landing") {
-    return <LandingPage onNavigate={setCurrentView} />;
-  }
+  const isCitizen = location.pathname.startsWith("/citizen");
+  const isAdmin = location.pathname.startsWith("/admin");
 
   return (
     <main className="flex h-screen w-full max-w-full flex-col overflow-hidden bg-white dark:bg-[#050505] text-gray-900 dark:text-white transition-colors font-sans">
       <header className="relative z-[1100] shrink-0 w-full max-w-full bg-white dark:bg-[#050505] border-b border-gray-200 dark:border-neutral-800 transition-colors">
         {/* Top Navbar Row */}
         <div className="flex h-14 md:h-16 w-full max-w-full items-center justify-between gap-2 px-3 sm:px-6">
-          {/* Brand / Title (Clickable to return to Landing Page) - SpaceX Aesthetic */}
-          <button
-            onClick={() => setCurrentView("landing")}
+          {/* Brand / Title (Clickable Link to Landing Page) - SpaceX Aesthetic */}
+          <Link
+            to="/"
             className="flex shrink-0 items-center gap-2 sm:gap-3 text-left focus:outline-none group cursor-pointer"
             title="Return to Landing Page Overview"
           >
@@ -143,10 +119,10 @@ function App() {
                 Ministry of Rural Development • PS 26014
               </p>
             </div>
-          </button>
+          </Link>
 
-          {/* Centered Search Bar on Desktop */}
-          {currentView === "citizen" ? (
+          {/* Centered Search Bar on Desktop (Citizen View only) */}
+          {isCitizen ? (
             <div className="hidden md:flex flex-1 max-w-lg justify-center px-4">
               <SearchBar map={mapInstance} onSelectParcel={handleParcelSelect} />
             </div>
@@ -154,7 +130,7 @@ function App() {
             <div className="hidden flex-1 justify-center px-4 md:flex">
               <div className="flex items-center gap-2 border border-gray-300 dark:border-neutral-800 bg-gray-50 dark:bg-[#111] px-3.5 py-1.5 text-xs text-gray-700 dark:text-neutral-300 font-mono tracking-wider uppercase rounded-none">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span>Officer Session: Active</span>
+                <span>{isAdminLoggedIn ? "Officer Session: Active" : "Authentication Gateway"}</span>
               </div>
             </div>
           )}
@@ -162,8 +138,9 @@ function App() {
           {/* Header Right Actions */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {/* Quick Apply Button in Citizen View (Desktop only) */}
-            {currentView === "citizen" && (
+            {isCitizen && (
               <button
+                type="button"
                 onClick={() => handleOpenMutationModal(selectedUlpIn)}
                 className="hidden md:inline-flex items-center gap-2 bg-black text-white hover:bg-gray-800 dark:bg-transparent dark:border dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none px-5 py-2 uppercase text-xs tracking-widest font-bold cursor-pointer"
               >
@@ -171,42 +148,38 @@ function App() {
               </button>
             )}
 
-            {/* Desktop Portal Switcher (hidden on mobile) */}
-            <div className="hidden md:inline-flex border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] p-0.5 rounded-none">
-              <button
-                onClick={() => setCurrentView("landing")}
-                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded-none ${
-                  currentView === "landing"
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : "text-gray-600 hover:text-black dark:text-neutral-400 dark:hover:text-white"
-                }`}
+            {/* Desktop Portal Switcher using React Router Links */}
+            <nav className="hidden md:inline-flex border border-gray-300 dark:border-neutral-800 bg-gray-100 dark:bg-[#111] p-0.5 rounded-none">
+              <Link
+                to="/"
+                className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded-none text-gray-600 hover:text-black dark:text-neutral-400 dark:hover:text-white"
                 title="Overview / Landing Page"
               >
                 Overview
-              </button>
+              </Link>
 
-              <button
-                onClick={() => setCurrentView("citizen")}
+              <Link
+                to="/citizen"
                 className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded-none ${
-                  currentView === "citizen"
+                  isCitizen
                     ? "bg-black text-white dark:bg-white dark:text-black"
                     : "text-gray-600 hover:text-black dark:text-neutral-400 dark:hover:text-white"
                 }`}
               >
                 Map
-              </button>
+              </Link>
 
-              <button
-                onClick={() => setCurrentView("admin")}
+              <Link
+                to="/admin"
                 className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded-none ${
-                  currentView === "admin"
+                  isAdmin
                     ? "bg-black text-white dark:bg-white dark:text-black"
                     : "text-gray-600 hover:text-black dark:text-neutral-400 dark:hover:text-white"
                 }`}
               >
                 Admin
-              </button>
-            </div>
+              </Link>
+            </nav>
 
             {/* Global Light / Dark Mode Toggle */}
             <ThemeToggle />
@@ -235,8 +208,8 @@ function App() {
         {/* Mobile 3-Lines Dropdown Drawer */}
         {isMobileMenuOpen && (
           <div className="border-t border-gray-200 dark:border-neutral-800 bg-white/95 dark:bg-black/95 backdrop-blur-md px-4 py-4 space-y-4 md:hidden font-mono z-[1200] max-w-full overflow-hidden">
-            {/* If Admin is Logged In, display Admin Name and Logout in 3 lines menu */}
-            {isAdminLoggedIn && currentView === "admin" && (
+            {/* If Admin is Logged In, display Admin Name and Logout */}
+            {isAdminLoggedIn && isAdmin && (
               <div className="border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 items-center justify-center bg-gray-200 dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 text-[10px] font-bold text-gray-900 dark:text-white">
@@ -252,6 +225,7 @@ function App() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     handleAdminLogout();
                     setIsMobileMenuOpen(false);
@@ -263,57 +237,48 @@ function App() {
               </div>
             )}
 
-            {/* Portal Switcher Options in 3 lines menu */}
+            {/* Portal Switcher Options in mobile drawer */}
             <div className="space-y-1.5">
               <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 dark:text-neutral-500 font-bold">
-                Select View
+                Select Route
               </span>
               <div className="grid grid-cols-1 gap-1.5">
-                <button
-                  onClick={() => {
-                    setCurrentView("landing");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer ${
-                    currentView === "landing"
-                      ? "bg-black text-white dark:bg-white dark:text-black font-extrabold"
-                      : "border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] text-gray-700 dark:text-neutral-300 hover:text-black dark:hover:text-white"
-                  }`}
+                <Link
+                  to="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] text-gray-700 dark:text-neutral-300 hover:text-black dark:hover:text-white block"
                 >
                   Overview / Landing
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView("citizen");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer ${
-                    currentView === "citizen"
+                </Link>
+                <Link
+                  to="/citizen"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer block ${
+                    isCitizen
                       ? "bg-black text-white dark:bg-white dark:text-black font-extrabold"
                       : "border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] text-gray-700 dark:text-neutral-300 hover:text-black dark:hover:text-white"
                   }`}
                 >
                   Citizen GIS Map
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrentView("admin");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer ${
-                    currentView === "admin"
+                </Link>
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`w-full text-left px-3.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors cursor-pointer block ${
+                    isAdmin
                       ? "bg-black text-white dark:bg-white dark:text-black font-extrabold"
                       : "border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] text-gray-700 dark:text-neutral-300 hover:text-black dark:hover:text-white"
                   }`}
                 >
                   Admin Portal {isAdminLoggedIn ? "(Officer Active)" : "(Login)"}
-                </button>
+                </Link>
               </div>
             </div>
 
             {/* Quick Apply Button on mobile if in citizen view */}
-            {currentView === "citizen" && (
+            {isCitizen && (
               <button
+                type="button"
                 onClick={() => {
                   handleOpenMutationModal(selectedUlpIn);
                   setIsMobileMenuOpen(false);
@@ -327,108 +292,15 @@ function App() {
         )}
 
         {/* Mobile Search Row (Full width on mobile screens, Citizen View only) */}
-        {currentView === "citizen" && (
+        {isCitizen && (
           <div className="border-t border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] px-3 pb-2.5 pt-2 md:hidden">
             <SearchBar map={mapInstance} onSelectParcel={handleParcelSelect} />
           </div>
         )}
       </header>
 
-      {/* Main View Container */}
-      {currentView === "citizen" ? (
-        <section className="relative flex flex-1 flex-col overflow-hidden md:flex-row">
-          {/* Map Section */}
-          <div className="relative flex-1 min-h-0">
-            <MapDashboard
-              selectedUlpIn={selectedUlpIn}
-              onParcelSelect={handleParcelSelect}
-              onMapReady={setMapInstance}
-              refreshKey={refreshKey}
-              refreshCurrentParcel={refreshCurrentParcel}
-            />
-
-            {/* DPI Cadastre Badge (Bottom Left) - Palantir Blueprint Glassmorphic */}
-            <div
-              className={`absolute bottom-5 left-5 z-[1000] hidden rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md sm:block transition duration-300 ${
-                isDark
-                  ? "bg-neutral-950/70 border-neutral-800 text-white"
-                  : "bg-white/70 border-gray-200 text-black"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className={`text-xs font-mono font-bold uppercase tracking-wider ${
-                  isDark ? "text-white" : "text-black"
-                }`}>
-                  Cadastral Registry Node
-                </p>
-              </div>
-              <p className={`mt-1 text-[11px] font-medium ${
-                isDark ? "text-neutral-400" : "text-neutral-600"
-              }`}>
-                Live PostGIS Canvas Engine • Click any boundary to inspect.
-              </p>
-            </div>
-
-            {/* Mobile tap hint when no parcel is selected */}
-            {!selectedUlpIn && (
-              <div
-                className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-mono font-bold shadow-xl backdrop-blur-md sm:hidden transition duration-300 ${
-                  isDark
-                    ? "bg-neutral-950/70 border-neutral-800 text-white"
-                    : "bg-white/70 border-gray-200 text-black"
-                }`}
-              >
-                <span>📍</span>
-                <span>Tap any parcel polygon to inspect</span>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile Bottom Sheet (<768px) with 3 real snap points */}
-          <BottomSheet
-            isOpen={Boolean(selectedUlpIn)}
-            onClose={() => handleParcelSelect(null)}
-          >
-            <ParcelPanel
-              selectedUlpIn={selectedUlpIn}
-              parcelData={selectedParcelData}
-              isExternalLoading={isParcelLoading}
-              onApplyMutation={handleOpenMutationModal}
-              refreshKey={refreshKey}
-            />
-          </BottomSheet>
-
-          {/* Desktop Right Sidebar (>=768px) with Tabbed Dossier */}
-          <aside className="hidden md:flex md:w-[480px] lg:w-[500px] md:flex-col border-l border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] z-10 shrink-0">
-            <ParcelPanel
-              selectedUlpIn={selectedUlpIn}
-              parcelData={selectedParcelData}
-              isExternalLoading={isParcelLoading}
-              onApplyMutation={handleOpenMutationModal}
-              refreshKey={refreshKey}
-            />
-          </aside>
-        </section>
-      ) : !isAdminLoggedIn ? (
-        <section className="flex min-h-0 flex-1 overflow-hidden bg-white dark:bg-[#050505]">
-          <AdminLogin
-            onLoginSuccess={(officerData) => {
-              setIsAdminLoggedIn(true);
-              if (officerData) setAdminUser(officerData);
-            }}
-            onCancel={() => setCurrentView("citizen")}
-          />
-        </section>
-      ) : (
-        <section className="flex min-h-0 flex-1 overflow-hidden w-full max-w-full bg-white dark:bg-[#050505]">
-          <AdminDashboard
-            onInspectParcel={handleInspectParcel}
-            onMutationUpdated={() => setRefreshKey((prev) => prev + 1)}
-            onLogout={handleAdminLogout}
-          />
-        </section>
-      )}
+      {/* Routed Page Content via Outlet */}
+      <Outlet />
 
       {/* Service Request / Mutation Modal */}
       <ServiceRequestModal
@@ -463,4 +335,311 @@ function App() {
   );
 }
 
-export default App;
+/**
+ * Citizen Map View Component
+ */
+function CitizenView({
+  selectedUlpIn,
+  selectedParcelData,
+  isParcelLoading,
+  handleParcelSelect,
+  setMapInstance,
+  refreshKey,
+  refreshCurrentParcel,
+  handleOpenMutationModal
+}) {
+  const { isDark } = useTheme();
+
+  return (
+    <section className="relative flex flex-1 flex-col overflow-hidden md:flex-row">
+      {/* Map Section */}
+      <div className="relative flex-1 min-h-0">
+        <MapDashboard
+          selectedUlpIn={selectedUlpIn}
+          onParcelSelect={handleParcelSelect}
+          onMapReady={setMapInstance}
+          refreshKey={refreshKey}
+          refreshCurrentParcel={refreshCurrentParcel}
+        />
+
+        {/* DPI Cadastre Badge (Bottom Left) - Palantir Blueprint Glassmorphic */}
+        <div
+          className={`absolute bottom-5 left-5 z-[1000] hidden rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md sm:block transition duration-300 ${
+            isDark
+              ? "bg-neutral-950/70 border-neutral-800 text-white"
+              : "bg-white/70 border-gray-200 text-black"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p
+              className={`text-xs font-mono font-bold uppercase tracking-wider ${
+                isDark ? "text-white" : "text-black"
+              }`}
+            >
+              Cadastral Registry Node
+            </p>
+          </div>
+          <p
+            className={`mt-1 text-[11px] font-medium ${
+              isDark ? "text-neutral-400" : "text-neutral-600"
+            }`}
+          >
+            Live PostGIS Canvas Engine • Click any boundary to inspect.
+          </p>
+        </div>
+
+        {/* Mobile tap hint when no parcel is selected */}
+        {!selectedUlpIn && (
+          <div
+            className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-mono font-bold shadow-xl backdrop-blur-md sm:hidden transition duration-300 ${
+              isDark
+                ? "bg-neutral-950/70 border-neutral-800 text-white"
+                : "bg-white/70 border-gray-200 text-black"
+            }`}
+          >
+            <span>📍</span>
+            <span>Tap any parcel polygon to inspect</span>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Bottom Sheet (<768px) */}
+      <BottomSheet isOpen={Boolean(selectedUlpIn)} onClose={() => handleParcelSelect(null)}>
+        <ParcelPanel
+          selectedUlpIn={selectedUlpIn}
+          parcelData={selectedParcelData}
+          isExternalLoading={isParcelLoading}
+          onApplyMutation={handleOpenMutationModal}
+          refreshKey={refreshKey}
+        />
+      </BottomSheet>
+
+      {/* Desktop Right Sidebar (>=768px) */}
+      <aside className="hidden md:flex md:w-[480px] lg:w-[500px] md:flex-col border-l border-gray-200 dark:border-neutral-800 bg-white dark:bg-[#050505] z-10 shrink-0">
+        <ParcelPanel
+          selectedUlpIn={selectedUlpIn}
+          parcelData={selectedParcelData}
+          isExternalLoading={isParcelLoading}
+          onApplyMutation={handleOpenMutationModal}
+          refreshKey={refreshKey}
+        />
+      </aside>
+    </section>
+  );
+}
+
+/**
+ * Admin View Component
+ */
+function AdminView({
+  isAdminLoggedIn,
+  setIsAdminLoggedIn,
+  setAdminUser,
+  handleInspectParcel,
+  handleAdminLogout,
+  setRefreshKey
+}) {
+  const navigate = useNavigate();
+
+  if (!isAdminLoggedIn) {
+    return (
+      <section className="flex min-h-0 flex-1 overflow-hidden bg-white dark:bg-[#050505]">
+        <AdminLogin
+          onLoginSuccess={(officerData) => {
+            setIsAdminLoggedIn(true);
+            if (officerData) setAdminUser(officerData);
+          }}
+          onCancel={() => navigate("/citizen")}
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section className="flex min-h-0 flex-1 overflow-hidden w-full max-w-full bg-white dark:bg-[#050505]">
+      <AdminDashboard
+        onInspectParcel={handleInspectParcel}
+        onMutationUpdated={() => setRefreshKey((prev) => prev + 1)}
+        onLogout={handleAdminLogout}
+      />
+    </section>
+  );
+}
+
+/**
+ * Master Application Content with state synchronization
+ */
+function AppContent() {
+  const navigate = useNavigate();
+  const [selectedUlpIn, setSelectedUlpIn] = useState(null);
+  const [selectedParcelData, setSelectedParcelData] = useState(null);
+  const [isParcelLoading, setIsParcelLoading] = useState(false);
+  const [mapInstance, setMapInstance] = useState(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(
+    () => localStorage.getItem("landstack_admin_auth") === "true"
+  );
+  const [isMutationModalOpen, setIsMutationModalOpen] = useState(false);
+  const [mutationModalUlpin, setMutationModalUlpin] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("landstack_admin_user");
+      return stored
+        ? JSON.parse(stored)
+        : { name: "Shri R. K. Verma", role: "Tahsildar / Sub-Registrar" };
+    } catch {
+      return { name: "Shri R. K. Verma", role: "Tahsildar / Sub-Registrar" };
+    }
+  });
+
+  // Auto-dismiss toast notification after 4 seconds
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  // Handle parcel selection with hydration data and loading flag
+  const handleParcelSelect = (ulpin, data = null, loading = false) => {
+    setSelectedUlpIn(ulpin);
+    setSelectedParcelData(data);
+    setIsParcelLoading(loading);
+  };
+
+  // Auto-Refresh callback: re-hydrates current parcel from backend
+  const refreshCurrentParcel = async (targetUlpin) => {
+    const ulpinToFetch = targetUlpin || selectedUlpIn;
+    if (!ulpinToFetch) return null;
+
+    try {
+      setIsParcelLoading(true);
+      const cleanUlpin = String(ulpinToFetch).replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
+      let res = await fetch(`/api/parcel/${cleanUlpin}?t=${Date.now()}`);
+      if (!res.ok && res.status === 404) {
+        res = await fetch(`/api/parcels/${cleanUlpin}?t=${Date.now()}`);
+      }
+      if (res.ok) {
+        const json = await res.json();
+        const freshData = json.data || json;
+        const parcelObj = { ulpin: freshData.ulpin || cleanUlpin, ...freshData };
+        setSelectedUlpIn(parcelObj.ulpin || cleanUlpin);
+        setSelectedParcelData(parcelObj);
+        setRefreshKey((prev) => prev + 1);
+        return parcelObj;
+      }
+    } catch (err) {
+      console.error("Failed to auto-refresh parcel:", err);
+    } finally {
+      setIsParcelLoading(false);
+    }
+    return null;
+  };
+
+  // Switch to citizen map view and locate parcel
+  const handleInspectParcel = (ulpin, data = null) => {
+    setSelectedUlpIn(ulpin);
+    setSelectedParcelData(data);
+    setIsParcelLoading(false);
+    setRefreshKey((prev) => prev + 1);
+    navigate("/citizen");
+  };
+
+  // Open mutation application modal
+  const handleOpenMutationModal = (targetUlpin) => {
+    setMutationModalUlpin(targetUlpin || selectedUlpIn || "");
+    setIsMutationModalOpen(true);
+  };
+
+  // Handle successful mutation submission
+  const handleMutationSuccess = async (_data, appliedUlpin) => {
+    const targetUlpin = appliedUlpin || selectedUlpIn;
+    if (targetUlpin) {
+      await refreshCurrentParcel(targetUlpin);
+    }
+    setRefreshKey((prev) => prev + 1);
+    setToastMessage("Mutation Successful: Record of Rights Updated");
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminLoggedIn(false);
+    setAdminUser(null);
+    localStorage.removeItem("landstack_admin_auth");
+    localStorage.removeItem("landstack_admin_user");
+    navigate("/citizen");
+  };
+
+  return (
+    <Routes>
+      {/* 1. Full-Bleed Isolated Landing Page (Zero layout wrapper, 100% full-screen) */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* 2. Isolated Dashboard Layout specifically for Map and Admin */}
+      <Route
+        element={
+          <DashboardLayout
+            mapInstance={mapInstance}
+            selectedUlpIn={selectedUlpIn}
+            handleParcelSelect={handleParcelSelect}
+            handleOpenMutationModal={handleOpenMutationModal}
+            isAdminLoggedIn={isAdminLoggedIn}
+            adminUser={adminUser}
+            handleAdminLogout={handleAdminLogout}
+            isMutationModalOpen={isMutationModalOpen}
+            mutationModalUlpin={mutationModalUlpin}
+            setIsMutationModalOpen={setIsMutationModalOpen}
+            handleMutationSuccess={handleMutationSuccess}
+            refreshCurrentParcel={refreshCurrentParcel}
+            toastMessage={toastMessage}
+            setToastMessage={setToastMessage}
+          />
+        }
+      >
+        <Route
+          path="/citizen"
+          element={
+            <CitizenView
+              selectedUlpIn={selectedUlpIn}
+              selectedParcelData={selectedParcelData}
+              isParcelLoading={isParcelLoading}
+              handleParcelSelect={handleParcelSelect}
+              setMapInstance={setMapInstance}
+              refreshKey={refreshKey}
+              refreshCurrentParcel={refreshCurrentParcel}
+              handleOpenMutationModal={handleOpenMutationModal}
+            />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminView
+              isAdminLoggedIn={isAdminLoggedIn}
+              setIsAdminLoggedIn={setIsAdminLoggedIn}
+              setAdminUser={setAdminUser}
+              handleInspectParcel={handleInspectParcel}
+              handleAdminLogout={handleAdminLogout}
+              setRefreshKey={setRefreshKey}
+            />
+          }
+        />
+      </Route>
+
+      {/* 3. Catch-All Route for 404s (Stark Terminal Aesthetic) */}
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
+
+/**
+ * Root Application wrapping the Router
+ */
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}

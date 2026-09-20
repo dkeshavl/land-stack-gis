@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Menu, X, ChevronDown } from "lucide-react";
@@ -316,7 +317,18 @@ function DataWallBackground() {
 }
 
 export default function LandingPage({ onNavigate }) {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleGoCitizen = () => {
+    onNavigate?.("citizen");
+    navigate("/citizen");
+  };
+
+  const handleGoAdmin = () => {
+    onNavigate?.("admin");
+    navigate("/admin");
+  };
 
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
@@ -362,7 +374,7 @@ export default function LandingPage({ onNavigate }) {
 
           <button
             type="button"
-            onClick={() => onNavigate?.("citizen")}
+            onClick={handleGoCitizen}
             className="text-xs font-bold tracking-[0.15em] uppercase text-white hover:text-neutral-400 transition-colors cursor-pointer"
           >
             DPI ARCHITECTURE
@@ -373,7 +385,7 @@ export default function LandingPage({ onNavigate }) {
         <div className="flex items-center gap-6">
           <button
             type="button"
-            onClick={() => onNavigate?.("admin")}
+            onClick={handleGoAdmin}
             className="hidden md:block text-xs font-bold tracking-[0.15em] uppercase text-white hover:text-neutral-400 transition-colors cursor-pointer"
           >
             LOGIN
@@ -422,7 +434,7 @@ export default function LandingPage({ onNavigate }) {
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
-              onNavigate?.("citizen");
+              handleGoCitizen();
             }}
             className="text-left text-lg font-bold tracking-[0.2em] uppercase text-white hover:text-neutral-400 transition-colors cursor-pointer"
           >
@@ -432,7 +444,7 @@ export default function LandingPage({ onNavigate }) {
             type="button"
             onClick={() => {
               setMobileMenuOpen(false);
-              onNavigate?.("admin");
+              handleGoAdmin();
             }}
             className="text-left text-lg font-bold tracking-[0.2em] uppercase text-white hover:text-neutral-400 transition-colors cursor-pointer"
           >
@@ -482,7 +494,7 @@ export default function LandingPage({ onNavigate }) {
           <div className="w-full md:w-auto flex justify-start">
             <button
               type="button"
-              onClick={() => onNavigate?.("citizen")}
+              onClick={handleGoCitizen}
               className="border-2 border-white px-8 py-4 text-xs font-bold tracking-[0.2em] uppercase text-white hover:bg-white hover:text-black transition-all duration-300 w-[fit-content] md:w-auto inline-block text-center cursor-pointer"
             >
               INITIATE DEMO
@@ -555,7 +567,7 @@ export default function LandingPage({ onNavigate }) {
           <div className="w-full md:w-auto flex justify-start">
             <button
               type="button"
-              onClick={() => onNavigate?.("citizen")}
+              onClick={handleGoCitizen}
               className="border-2 border-white px-8 py-4 text-xs font-bold tracking-[0.2em] uppercase text-white hover:bg-white hover:text-black transition-all duration-300 w-[fit-content] md:w-auto inline-block text-center cursor-pointer"
             >
               EXPLORE CITIZEN UI
@@ -588,7 +600,7 @@ export default function LandingPage({ onNavigate }) {
           <div className="w-full md:w-auto flex justify-start md:justify-end">
             <button
               type="button"
-              onClick={() => onNavigate?.("admin")}
+              onClick={handleGoAdmin}
               className="border-2 border-white px-8 py-4 text-xs font-bold tracking-[0.2em] uppercase text-white hover:bg-white hover:text-black transition-all duration-300 w-[fit-content] md:w-auto inline-block text-center cursor-pointer"
             >
               ENTER ADMIN CONSOLE

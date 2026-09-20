@@ -12,9 +12,8 @@ function DataRow({ label, value, isMono = false }) {
     <div className="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-neutral-800/80 py-2.5 last:border-b-0">
       <span className="text-xs font-medium text-gray-500 dark:text-neutral-400">{label}</span>
       <span
-        className={`text-right text-xs font-semibold text-gray-900 dark:text-white ${
-          isMono ? "font-mono" : ""
-        }`}
+        className={`text-right text-xs font-semibold text-gray-900 dark:text-white ${isMono ? "font-mono" : ""
+          }`}
       >
         {value || "Not specified"}
       </span>
@@ -259,9 +258,8 @@ export default function ParcelPanel({
             onClick={handleCopyUlpin}
             title="Copy 14-digit ULPIN to clipboard"
             aria-label="Copy ULPIN"
-            className={`inline-flex items-center gap-1 border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-mono text-[10px] font-bold uppercase tracking-wider rounded-none px-2 py-0.5 transition-colors cursor-pointer ${
-              copied ? "bg-black text-white dark:bg-white dark:text-black" : ""
-            }`}
+            className={`inline-flex items-center gap-1 border border-black dark:border-white text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black font-mono text-[10px] font-bold uppercase tracking-wider rounded-none px-2 py-0.5 transition-colors cursor-pointer ${copied ? "bg-black text-white dark:bg-white dark:text-black" : ""
+              }`}
           >
             {copied ? (
               <>
@@ -299,11 +297,10 @@ export default function ParcelPanel({
               aria-controls={`panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               title={tab.label}
-              className={`relative flex items-center justify-center gap-1 sm:gap-1.5 px-1 sm:px-2 pb-2.5 pt-1 transition-colors cursor-pointer -mb-px outline-none focus:outline-none whitespace-nowrap ${
-                isActive
-                  ? "border-b-2 border-black dark:border-white text-black dark:text-white font-bold tracking-tight sm:tracking-wider text-[10px] sm:text-[11px] md:text-xs uppercase"
-                  : "border-b-2 border-transparent text-gray-500 hover:text-black dark:hover:text-white font-semibold tracking-tight sm:tracking-wider text-[10px] sm:text-[11px] md:text-xs uppercase"
-              }`}
+              className={`relative flex items-center justify-center gap-1 sm:gap-1.5 px-1 sm:px-2 pb-2.5 pt-1 transition-colors cursor-pointer -mb-px outline-none focus:outline-none whitespace-nowrap ${isActive
+                ? "border-b-2 border-black dark:border-white text-black dark:text-white font-bold tracking-tight sm:tracking-wider text-[10px] sm:text-[11px] md:text-xs uppercase"
+                : "border-b-2 border-transparent text-gray-500 hover:text-black dark:hover:text-white font-semibold tracking-tight sm:tracking-wider text-[10px] sm:text-[11px] md:text-xs uppercase"
+                }`}
             >
               {tab.icon}
               <span className="truncate">{tab.label}</span>
@@ -447,7 +444,7 @@ export default function ParcelPanel({
                   }
                   isMono
                 />
-                
+
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-neutral-800 py-2.5">
                   <span className="text-xs font-medium text-gray-500 dark:text-neutral-400">Title Mutation Status</span>
                   <StatusPill status={displayParcel?.ownership?.mutationStatus || "Approved"} />
@@ -462,10 +459,10 @@ export default function ParcelPanel({
                     value={
                       !isNaN(new Date(displayParcel.ownership.approvedAt).getTime())
                         ? new Date(displayParcel.ownership.approvedAt).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric"
-                          })
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })
                         : "Verified"
                     }
                   />
