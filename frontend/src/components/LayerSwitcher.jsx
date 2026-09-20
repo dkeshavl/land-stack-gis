@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import L from "leaflet";
 import { useTheme } from "../context/ThemeContext";
 
 /**
@@ -9,9 +11,19 @@ import { useTheme } from "../context/ThemeContext";
  * - Single-line guaranteed text with whitespace-nowrap & responsive text-[9px] md:text-xs
  * - Perfectly aligned scalable icons (shrink-0 w-3 h-3 md:w-4 md:h-4)
  * - Full WCAG AA accessibility: role="radiogroup", role="radio", aria-checked
+ * - Touch & Click event isolation preventing Leaflet map bleed-through
  */
 export default function LayerSwitcher({ currentLayer = "streets", onLayerChange }) {
   const { isDark } = useTheme();
+  const containerRef = useRef(null);
+
+  // Prevent Leaflet canvas/map from receiving native click/touch propagation
+  useEffect(() => {
+    if (containerRef.current && typeof L !== "undefined" && L.DomEvent) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+      L.DomEvent.disableScrollPropagation(containerRef.current);
+    }
+  }, []);
 
   const layers = [
     {
@@ -81,8 +93,12 @@ export default function LayerSwitcher({ currentLayer = "streets", onLayerChange 
 
   return (
     <div
+      ref={containerRef}
       role="radiogroup"
       aria-label="Basemap layer selection"
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       className="flex w-full bg-white dark:bg-[#111] border border-gray-300 dark:border-neutral-800 shadow-xl overflow-hidden"
     >
       {layers.map((layer) => {
@@ -95,7 +111,20 @@ export default function LayerSwitcher({ currentLayer = "streets", onLayerChange 
             aria-checked={isActive}
             aria-label={`${layer.label} basemap: ${layer.description}`}
             title={layer.description}
-            onClick={() => onLayerChange(layer.id)}
+            onPointerDown={(e) => {
+              e.preventDefault(); // Prevents focus loss and race conditions
+              e.stopPropagation(); // Stops the map from registering a click
+              if (typeof onLayerChange === "function") {
+                onLayerChange(layer.id);
+              }
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (typeof onLayerChange === "function") {
+                onLayerChange(layer.id);
+              }
+            }}
             className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 md:px-4 md:py-2.5 text-[9px] md:text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors duration-200 cursor-pointer rounded-none outline-none ${
               isActive
                 ? "bg-black text-white dark:bg-white dark:text-black"

@@ -587,7 +587,12 @@ function MapDashboard({
       )}
 
       {/* 2. Floating Segmented Basemap Switcher (Mathematically Centered & Responsive) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] w-[90%] max-w-sm md:max-w-max md:w-auto flex justify-center">
+      <div
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] w-[90%] max-w-sm md:max-w-max md:w-auto flex justify-center"
+      >
         <LayerSwitcher currentLayer={baseMap} onLayerChange={setBaseMap} />
       </div>
 
