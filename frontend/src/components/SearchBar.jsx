@@ -19,6 +19,7 @@ export default function SearchBar({
   const listboxRef = useRef(null);
   const skipNextSearchRef = useRef(false);
   const abortControllerRef = useRef(null);
+  const handlingUlpinRef = useRef(null);
   const searchId = useId();
 
   // Close dropdown on outside click
@@ -123,6 +124,13 @@ export default function SearchBar({
     const rawUlpin = suggestion?.ulpin || (typeof suggestion === "string" ? suggestion : "");
     const cleanUlpin = String(rawUlpin || "").replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
     if (!cleanUlpin) return;
+
+    // Prevent duplicate hydration if both onMouseDown and onClick trigger in rapid succession
+    if (handlingUlpinRef.current === cleanUlpin) return;
+    handlingUlpinRef.current = cleanUlpin;
+    setTimeout(() => {
+      handlingUlpinRef.current = null;
+    }, 400);
 
     // Clean up autocomplete UI immediately
     setIsOpen(false);
@@ -255,7 +263,11 @@ export default function SearchBar({
     handleSuggestionClick({ ulpin: cleanUlpin });
   };
 
-  const handleClear = () => {
+  const handleClear = (e) => {
+    if (e) {
+      e.preventDefault(); // CRITICAL: Prevents the input from losing focus
+      e.stopPropagation();
+    }
     skipNextSearchRef.current = false;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -326,7 +338,7 @@ export default function SearchBar({
           ) : (
             <button
               type="button"
-              onClick={handleClear}
+              onMouseDown={handleClear}
               className="shrink-0 rounded-none p-1 text-gray-400 hover:text-black dark:text-neutral-400 dark:hover:text-white cursor-pointer"
               aria-label="Clear search query"
             >
@@ -351,6 +363,10 @@ export default function SearchBar({
           id={`${searchId}-listbox`}
           role="listbox"
           aria-label="Cadastral parcel search suggestions"
+          onMouseDown={(e) => {
+            // CRITICAL: Prevents the input from losing focus / blurring when interacting with dropdown
+            e.preventDefault();
+          }}
           className="absolute left-0 top-full z-[1500] mt-1 max-h-80 w-full overflow-y-auto rounded-none border border-gray-300 dark:border-neutral-800 bg-white dark:bg-[#050505] p-1 shadow-2xl transition"
         >
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-neutral-800 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-500 dark:text-neutral-500">
@@ -367,6 +383,12 @@ export default function SearchBar({
                   id={`${searchId}-item-${idx}`}
                   role="option"
                   aria-selected={isSelected}
+                  onMouseDown={(e) => {
+                    // Prevent blur race condition before selection
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSuggestionClick(item);
+                  }}
                   onClick={() => handleSuggestionClick(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`group flex cursor-pointer items-center justify-between rounded-none px-3 py-2.5 transition-colors ${
