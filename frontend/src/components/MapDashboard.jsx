@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { MapContainer, TileLayer, ZoomControl, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl, GeoJSON, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "../context/ThemeContext";
 import LayerSwitcher from "./LayerSwitcher";
+import LayerController, { INITIAL_LAYER_STATE, INITIAL_LOADING_LAYERS } from "./LayerController";
+import { fetchOSMLayer, MIN_OVERPASS_ZOOM } from "../utils/overpass";
 
 const MIN_CADASTRE_ZOOM = 15;
 
@@ -34,6 +36,370 @@ export const GET_BASEMAP_CONFIGS = (isDark = false) => ({
     maxZoom: 17
   }
 });
+
+/**
+ * ==============================================================================
+ * Real Public Coordinate GeoJSON FeatureCollections for Jayanagar, Bengaluru
+ * Landmarks: Yediyur Lake, Madhavan Park, 4th Block Complex, RV Road Rajakaluve, 3rd Block
+ * Center Coordinates: Approx 12.9300° N, 77.5800° E
+ * Strict RFC 7946 Standard: [Longitude, Latitude]
+ * ==============================================================================
+ */
+
+// 1. mockEnvData: Real Lake & Environmental Restrictions (Yediyur Lake & Madhavan Park)
+export const mockEnvData = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      id: "env-yediyur-lake",
+      properties: {
+        type: "Eco-Sensitive Zone / Water Body",
+        name: "Yediyur Lake",
+        restriction: "BBMP Mandate: No Construction within 30m buffer zone.",
+        authority: "BBMP Lakes Division / KSPCB",
+        statutory_buffer: "30m Mandatory Green Buffer Zone"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5732, 12.9328],
+            [77.5756, 12.9324],
+            [77.5772, 12.9341],
+            [77.5770, 12.9363],
+            [77.5752, 12.9368],
+            [77.5731, 12.9351],
+            [77.5732, 12.9328]
+          ]
+        ]
+      }
+    },
+    {
+      type: "Feature",
+      id: "env-madhavan-park",
+      properties: {
+        type: "Eco-Sensitive Zone / Water Body",
+        name: "Madhavan Park",
+        restriction: "BBMP Mandate: No Construction within 30m buffer zone.",
+        authority: "BBMP Horticulture Department",
+        zone_code: "P-SP (Park & Open Space)"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5838, 12.9350],
+            [77.5866, 12.9350],
+            [77.5868, 12.9376],
+            [77.5840, 12.9376],
+            [77.5838, 12.9350]
+          ]
+        ]
+      }
+    }
+  ]
+};
+
+// 2. mockZoningData: Real Commercial Zones (Jayanagar 4th Block Shopping Complex)
+export const mockZoningData = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      id: "zone-jayanagar-4th-block-complex",
+      properties: {
+        zone: "Commercial (C-2)",
+        name: "Jayanagar 4th Block Complex",
+        floor_area_ratio: 2.5,
+        permissible_uses: "Retail High Street, Banking, Hypermarket, Commercial Offices",
+        master_plan: "BDA Revised Master Plan 2031 (CDP)"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5815, 12.9275],
+            [77.5848, 12.9275],
+            [77.5848, 12.9308],
+            [77.5815, 12.9308],
+            [77.5815, 12.9275]
+          ]
+        ]
+      }
+    },
+    {
+      type: "Feature",
+      id: "zone-11th-main-commercial-spine",
+      properties: {
+        zone: "Commercial (C-2)",
+        name: "11th Main Commercial Corridor",
+        floor_area_ratio: 2.5,
+        permissible_uses: "Commercial High-Street Retail & Transit Amenities"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5820, 12.9242],
+            [77.5842, 12.9242],
+            [77.5842, 12.9272],
+            [77.5820, 12.9272],
+            [77.5820, 12.9242]
+          ]
+        ]
+      }
+    }
+  ]
+};
+
+// 3. mockWaterLines: Real Infrastructure near RV Road / Namma Metro Green Line
+export const mockWaterLines = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      id: "rajakaluve-rv-road-metro-main",
+      properties: {
+        type: "Primary Stormwater Drain (Rajakaluve)",
+        maintenance_authority: "BBMP",
+        depth: "4.2m",
+        corridor: "Namma Metro Green Line / Rashtriya Vidyalaya Road",
+        statutory_buffer: "50m NGT Statutory Encroachment Buffer"
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [77.5802, 12.9210],
+          [77.5802, 12.9255],
+          [77.5803, 12.9300],
+          [77.5804, 12.9345],
+          [77.5805, 12.9380],
+          [77.5806, 12.9415]
+        ]
+      }
+    },
+    {
+      type: "Feature",
+      id: "rajakaluve-yediyur-feeder",
+      properties: {
+        type: "Primary Stormwater Drain (Rajakaluve)",
+        maintenance_authority: "BBMP",
+        depth: "3.8m",
+        corridor: "Yediyur Basin Link Feeder"
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [77.5748, 12.9338],
+          [77.5775, 12.9325],
+          [77.5803, 12.9318],
+          [77.5845, 12.9310]
+        ]
+      }
+    }
+  ]
+};
+
+// 4. mockEncumbranceData: Realistic Legal Dispute in Jayanagar 3rd Block
+export const mockEncumbranceData = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      id: "encumb-parcel-3rd-block-48a",
+      properties: {
+        status: "Court Injunction Active",
+        khasra: "326/3",
+        legal_code: "Section 192-A Karnataka Land Revenue Act (Encroachment)",
+        case_no: "OS/2026/8492",
+        parcel_location: "Jayanagar 3rd Block (Near 14th Cross)",
+        court: "City Civil Court, Bengaluru"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5826, 12.9325],
+            [77.5835, 12.9325],
+            [77.5835, 12.9335],
+            [77.5826, 12.9335],
+            [77.5826, 12.9325]
+          ]
+        ]
+      }
+    },
+    {
+      type: "Feature",
+      id: "encumb-parcel-3rd-block-52b",
+      properties: {
+        status: "Court Injunction Active",
+        khasra: "326/4",
+        legal_code: "Section 192-A Karnataka Land Revenue Act (Encroachment)",
+        case_no: "OS/2026/8492",
+        parcel_location: "Jayanagar 3rd Block (Near 15th Cross)",
+        court: "Commercial Division High Court of Karnataka"
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [77.5838, 12.9328],
+            [77.5847, 12.9328],
+            [77.5847, 12.9338],
+            [77.5838, 12.9338],
+            [77.5838, 12.9328]
+          ]
+        ]
+      }
+    }
+  ]
+};
+
+/**
+ * High-Contrast Leaflet Styling Objects matching SpaceX/Palantir DPI Aesthetic:
+ * - Zoning Style: color: '#8b5cf6' (Purple), weight: 2, fillOpacity: 0.15
+ * - Encumbrance Style: color: '#ef4444' (Red), weight: 2, fillColor: '#ef4444', fillOpacity: 0.35, dashArray: '4 4'
+ * - Water Lines Style: color: '#06b6d4' (Cyan), weight: 4, opacity: 0.85
+ * - Environmental Style: color: '#10b981' (Emerald Green), weight: 2, fillOpacity: 0.15, dashArray: '8 4'
+ */
+export const zoningStyle = {
+  color: "#8b5cf6",
+  weight: 2,
+  fillColor: "#8b5cf6",
+  fillOpacity: 0.18
+};
+
+export const encumbranceStyle = {
+  color: "#ef4444",
+  weight: 2,
+  fillColor: "#ef4444",
+  fillOpacity: 0.35,
+  dashArray: "4 4"
+};
+
+export const waterLinesStyle = {
+  color: "#06b6d4",
+  weight: 4,
+  opacity: 0.85
+};
+export const waterStyle = waterLinesStyle; // Alias for compatibility
+
+export const envStyle = {
+  color: "#10b981",
+  weight: 2,
+  fillColor: "#10b981",
+  fillOpacity: 0.18,
+  dashArray: "8 4"
+};
+export const environmentalStyle = envStyle; // Alias for compatibility
+
+/**
+ * Stark Monospace Terminal UI HTML Generator for Leaflet Popups
+ * Format: bg-black text-white font-mono text-xs rounded-none
+ * Iterates through properties and renders clean `> KEY: VALUE` terminal readouts
+ */
+export const createTerminalPopupHtml = (feature, layerCategory, categoryColor) => {
+  const rawProps = feature?.properties || {};
+  const tags = rawProps.tags || {};
+
+  // Extract high-priority OSM tags or fallback properties
+  const primaryName =
+    tags.name ||
+    rawProps.name ||
+    tags.landuse ||
+    tags.leisure ||
+    tags.waterway ||
+    tags.water ||
+    rawProps.type ||
+    "OSM_VECTOR_FEATURE";
+
+  const displayEntries = [];
+
+  // Mandated highlights: tags.name, tags.landuse, leisure, waterway
+  if (tags.name) {
+    displayEntries.push(["NAME", tags.name]);
+  }
+  if (tags.landuse) {
+    displayEntries.push(["LAND USE", tags.landuse]);
+  }
+  if (tags.leisure) {
+    displayEntries.push(["LEISURE", tags.leisure]);
+  }
+  if (tags.waterway) {
+    displayEntries.push(["WATERWAY", tags.waterway]);
+  }
+  if (tags.water) {
+    displayEntries.push(["WATER BODY", tags.water]);
+  }
+
+  // Append remaining tags (scalar values only)
+  Object.entries(tags).forEach(([k, v]) => {
+    if (
+      !["name", "landuse", "leisure", "waterway", "water"].includes(k) &&
+      typeof v !== "object" &&
+      v !== undefined &&
+      v !== null
+    ) {
+      displayEntries.push([k.replace(/_/g, " ").toUpperCase(), String(v)]);
+    }
+  });
+
+  // If no OSM tags were extracted, fall back to top-level properties (e.g. baseline cadastre/mock)
+  if (displayEntries.length === 0) {
+    Object.entries(rawProps).forEach(([k, v]) => {
+      if (k !== "tags" && typeof v !== "object" && v !== undefined && v !== null) {
+        displayEntries.push([k.replace(/_/g, " ").toUpperCase(), String(v)]);
+      }
+    });
+  }
+
+  // Build monospace terminal readout lines: > KEY: VALUE
+  const terminalLines = displayEntries
+    .slice(0, 10)
+    .map(([key, value]) => `
+      <div style="margin-bottom: 5px; line-height: 1.5; font-family: 'JetBrains Mono', monospace; font-size: 11px; display: flex; align-items: baseline; gap: 6px;">
+        <span style="color: ${categoryColor}; font-weight: 800; user-select: none;">&gt;</span>
+        <span style="color: #9ca3af; text-transform: uppercase; font-weight: 600; white-space: nowrap;">${key}:</span>
+        <span style="color: #ffffff; font-weight: 700; word-break: break-word;">${value}</span>
+      </div>
+    `)
+    .join("");
+
+  return `
+    <div class="bg-black text-white font-mono text-xs rounded-none" style="background-color: #000000; color: #ffffff; font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid ${categoryColor}; border-radius: 0px; padding: 12px 14px; min-width: 280px; max-width: 360px; box-shadow: 0 16px 36px rgba(0,0,0,0.95);">
+      <!-- Terminal Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #222222; padding-bottom: 6px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: ${categoryColor}; border-radius: 0;"></span>
+          <span style="font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: ${categoryColor};">
+            [${layerCategory}]
+          </span>
+        </div>
+        <span style="font-size: 9px; color: #666666; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em;">OSM // OVERPASS</span>
+      </div>
+
+      <!-- Feature Name Callout -->
+      <div style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #1a1a1a;">
+        <div style="font-size: 8px; color: #888888; text-transform: uppercase; letter-spacing: 0.15em;">IDENTIFIER</div>
+        <div style="font-size: 12px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
+          ${primaryName}
+        </div>
+      </div>
+
+      <!-- Monospace Properties Readout -->
+      <div style="background: #080808; border: 1px solid #1a1a1a; padding: 8px 10px; margin-bottom: 8px; border-radius: 0; max-height: 180px; overflow-y: auto;">
+        ${terminalLines || '<div style="color: #666666; font-size: 10px;">NO ADDITIONAL TAGS FOUND</div>'}
+      </div>
+
+      <!-- Terminal Footer Status -->
+      <div style="font-size: 9px; color: #666666; text-transform: uppercase; letter-spacing: 0.1em; border-top: 1px solid #1a1a1a; padding-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+        <span>SYS.SRC: OPENSTREETMAP</span>
+        <span style="color: ${categoryColor}; font-weight: 700;">● LIVE_STREAM</span>
+      </div>
+    </div>
+  `;
+};
 
 /**
  * Adaptive Blueprint Polygons:
@@ -451,6 +817,173 @@ function MapEmptyClickHandler({ onClearSelection }) {
   return null;
 }
 
+/**
+ * Stark SpaceX / Palantir Map Scanning Overlay (Rule 2)
+ * Appears ONLY when ANY layer is currently loading (Object.values(loadingLayers).some(Boolean)).
+ */
+function MapScanningOverlay({ loadingLayers }) {
+  const isAnyLoading = Object.values(loadingLayers || {}).some(Boolean);
+  const [asciiIndex, setAsciiIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isAnyLoading) return;
+    const timer = setInterval(() => {
+      setAsciiIndex((i) => (i + 1) % 4);
+    }, 120);
+    return () => clearInterval(timer);
+  }, [isAnyLoading]);
+
+  if (!isAnyLoading) return null;
+
+  const ASCII_FRAMES = ["/", "—", "\\", "|"];
+
+  return (
+    <div className="absolute inset-0 z-[500] pointer-events-none flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-200">
+      <div className="bg-[#050505] border border-emerald-500/50 p-4 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+        <div className="font-mono text-emerald-400 text-xs tracking-[0.2em] uppercase flex items-center gap-2">
+          <span>&gt; ACQUIRING SPATIAL VECTORS</span>
+          <span className="font-bold text-emerald-300 select-none">
+            {ASCII_FRAMES[asciiIndex]}
+          </span>
+          <span className="inline-block animate-pulse font-bold text-emerald-400 select-none">
+            █
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * OSMViewportManager:
+ * - Listens for moveend and zoomend events via useMapEvents
+ * - Extracts current Leaflet map bounds
+ * - Queries the Overpass API for active layers (Zoning, Environment, Utilities)
+ * - Manages debouncing, AbortController cancellation, and loading state
+ */
+function OSMViewportManager({
+  activeLayers,
+  loadingLayers,
+  setLoadingLayers,
+  onOSMDataUpdate,
+  setIsOsmLoading,
+  setOsmLoadingLayers,
+  onZoomChange
+}) {
+  const map = useMap();
+  const debounceTimerRef = useRef(null);
+  const abortControllersRef = useRef({});
+
+  const executeOSMQueries = useCallback(() => {
+    const zoom = map.getZoom();
+    if (onZoomChange) {
+      onZoomChange(zoom);
+    }
+
+    // Zoom limit guard: prevent downloading huge areas
+    if (zoom < MIN_OVERPASS_ZOOM) {
+      Object.values(abortControllersRef.current).forEach((c) => c?.abort());
+      abortControllersRef.current = {};
+      setIsOsmLoading(false);
+      setOsmLoadingLayers([]);
+      return;
+    }
+
+    const bounds = map.getBounds();
+    if (!bounds || !bounds.isValid || !bounds.isValid()) {
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      const isZoningActive = Boolean(activeLayers?.zoning || activeLayers?.landUseZoning);
+      const isEnvActive = Boolean(activeLayers?.envRestrictions || activeLayers?.environmentalRestrictions);
+      const isUtilActive = Boolean(activeLayers?.waterLines || activeLayers?.waterSewageLines);
+
+      const tasks = [];
+      const loadingLabels = [];
+
+      if (isEnvActive) {
+        tasks.push({ key: "environment", type: "environment", label: "ENVIRONMENT" });
+        loadingLabels.push("ENVIRONMENT");
+      }
+      if (isZoningActive) {
+        tasks.push({ key: "zoning", type: "zoning", label: "ZONING" });
+        loadingLabels.push("ZONING");
+      }
+      if (isUtilActive) {
+        tasks.push({ key: "utilities", type: "utilities", label: "UTILITIES" });
+        loadingLabels.push("UTILITIES");
+      }
+
+      if (tasks.length === 0) {
+        setIsOsmLoading(false);
+        setOsmLoadingLayers([]);
+        return;
+      }
+
+      setIsOsmLoading(true);
+      setOsmLoadingLayers(loadingLabels);
+
+      let pendingCount = tasks.length;
+
+      tasks.forEach((task) => {
+        // Cancel existing pending query for this category
+        if (abortControllersRef.current[task.key]) {
+          abortControllersRef.current[task.key].abort();
+        }
+
+        const ctrl = new AbortController();
+        abortControllersRef.current[task.key] = ctrl;
+
+        fetchOSMLayer(task.type, bounds, {
+          signal: ctrl.signal,
+          setLoadingLayers
+        })
+          .then((geoJson) => {
+            if (geoJson && geoJson.features) {
+              onOSMDataUpdate(task.key, geoJson);
+            }
+          })
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.warn(`[OSM ${task.label}] Query error:`, err.message);
+            }
+          })
+          .finally(() => {
+            pendingCount -= 1;
+            if (pendingCount <= 0) {
+              setIsOsmLoading(false);
+              setOsmLoadingLayers([]);
+            }
+          });
+      });
+    }, 400);
+  }, [map, activeLayers, onOSMDataUpdate, setIsOsmLoading, setOsmLoadingLayers, onZoomChange, setLoadingLayers]);
+
+  // Hook into Leaflet viewport events
+  useMapEvents({
+    moveend: executeOSMQueries,
+    zoomend: executeOSMQueries
+  });
+
+  // Re-run immediately when active layer toggles change
+  useEffect(() => {
+    executeOSMQueries();
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      Object.values(abortControllersRef.current).forEach((c) => c?.abort());
+    };
+  }, [executeOSMQueries]);
+
+  return null;
+}
+
 function MapDashboard({
   selectedUlpIn,
   selectedParcel,
@@ -458,13 +991,87 @@ function MapDashboard({
   setSelectedParcel,
   onMapReady,
   refreshKey = 0,
-  refreshCurrentParcel: externalRefreshCurrentParcel
+  refreshCurrentParcel: externalRefreshCurrentParcel,
+  activeLayers: externalActiveLayers,
+  onLayersChange
 }) {
   const { isDark } = useTheme();
   const geoJsonRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(16);
   const [baseMap, setBaseMap] = useState("streets");
+  const [activeLayers, setActiveLayers] = useState(
+    externalActiveLayers || INITIAL_LAYER_STATE
+  );
+
+  // Dynamic OpenStreetMap vector layers state
+  const [osmData, setOsmData] = useState({
+    environment: null,
+    zoning: null,
+    utilities: null
+  });
+  const [isOsmLoading, setIsOsmLoading] = useState(false);
+  const [osmLoadingLayers, setOsmLoadingLayers] = useState([]);
+  const [osmVersion, setOsmVersion] = useState(0);
+
+  // Strict Rule 1: Loading state tracking which layers are currently being fetched
+  const [loadingLayers, setLoadingLayers] = useState(INITIAL_LOADING_LAYERS);
+
+  const handleOSMDataUpdate = useCallback((layerKey, geoJson) => {
+    setOsmData((prev) => ({
+      ...prev,
+      [layerKey]: geoJson
+    }));
+    setOsmVersion((v) => v + 1);
+  }, []);
+
+  // Strict Rule 1: Clear out any old "imperfect" GeoJSON data for that layer the moment user toggles
+  const handleToggleLayer = useCallback((layerId, nextState) => {
+    const canonicalKey =
+      layerId === "landUseZoning" || layerId === "zoning"
+        ? "zoning"
+        : layerId === "waterSewageLines" || layerId === "waterLines"
+        ? "utilities"
+        : layerId === "environmentalRestrictions" || layerId === "envRestrictions"
+        ? "environment"
+        : null;
+
+    if (canonicalKey) {
+      // Clear out old GeoJSON data immediately so the map is clean while the new accurate data fetches
+      setOsmData((prev) => ({
+        ...prev,
+        [canonicalKey]: null
+      }));
+      setOsmVersion((v) => v + 1);
+
+      // Instantly activate loading indicator state when turning ON
+      setLoadingLayers((prev) => ({
+        ...prev,
+        [layerId]: nextState,
+        [canonicalKey]: nextState,
+        ...(canonicalKey === "zoning" ? { landUseZoning: nextState, zoning: nextState } : {}),
+        ...(canonicalKey === "utilities" ? { waterSewageLines: nextState, waterLines: nextState } : {}),
+        ...(canonicalKey === "environment" ? { environmentalRestrictions: nextState, envRestrictions: nextState } : {})
+      }));
+    }
+  }, []);
+
+  // Sync external active layers if controlled from parent
+  useEffect(() => {
+    if (externalActiveLayers) {
+      setActiveLayers(externalActiveLayers);
+    }
+  }, [externalActiveLayers]);
+
+  const handleLayersChange = useCallback(
+    (nextLayers) => {
+      setActiveLayers(nextLayers);
+      if (typeof onLayersChange === "function") {
+        onLayersChange(nextLayers);
+      }
+    },
+    [onLayersChange]
+  );
 
   const basemapConfigs = GET_BASEMAP_CONFIGS(isDark);
   const activeBasemap = basemapConfigs[baseMap] || basemapConfigs.streets;
@@ -542,6 +1149,16 @@ function MapDashboard({
     }
   }, [onParcelSelect, setSelectedParcel]);
 
+  // Check if any OSM layer is toggled on while below minimum zoom threshold
+  const hasActiveOsmLayers = Boolean(
+    activeLayers?.zoning ||
+    activeLayers?.landUseZoning ||
+    activeLayers?.waterLines ||
+    activeLayers?.waterSewageLines ||
+    activeLayers?.envRestrictions ||
+    activeLayers?.environmentalRestrictions
+  );
+
   return (
     <div className="relative h-full w-full">
       {/* 1. Zoom Gatekeeping Banner with Interactive Direct "Zoom to Cadastre" CTA */}
@@ -586,7 +1203,33 @@ function MapDashboard({
         </div>
       )}
 
-      {/* 2. Floating Segmented Basemap Switcher (Mathematically Centered & Responsive) */}
+      {/* 2. Overpass Telemetry HUD: Loading State & Zoom Limit Gate */}
+      {isOsmLoading && (
+        <div className="absolute top-16 left-4 z-[1000] pointer-events-none transition-all duration-200">
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-none border border-cyan-500/60 bg-black/90 text-white font-mono text-[11px] shadow-2xl backdrop-blur-md">
+            <span className="inline-block w-2.5 h-2.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
+            <span className="tracking-widest uppercase font-bold text-cyan-400">
+              QUERYING SATELLITE DATA...
+            </span>
+            {osmLoadingLayers.length > 0 && (
+              <span className="text-[9px] px-1.5 py-0.2 border border-neutral-700 bg-neutral-900 text-neutral-300">
+                [{osmLoadingLayers.join(" + ")}]
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hasActiveOsmLayers && currentZoom < MIN_OVERPASS_ZOOM && (
+        <div className="absolute top-28 sm:top-[112px] left-1/2 -translate-x-1/2 z-[1000] pointer-events-none transition-all duration-200">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-none border border-amber-500/40 bg-black/90 text-amber-400 font-mono text-[10px] uppercase tracking-wider backdrop-blur-md shadow-xl">
+            <span className="h-1.5 w-1.5 bg-amber-400 animate-pulse"></span>
+            <span>OSM STREAM PAUSED: ZOOM TO LEVEL {MIN_OVERPASS_ZOOM}+ FOR LIVE VECTORS</span>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Floating Segmented Basemap Switcher (Mathematically Centered & Responsive) */}
       <div
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
@@ -597,20 +1240,31 @@ function MapDashboard({
         <LayerSwitcher currentLayer={baseMap} onLayerChange={setBaseMap} />
       </div>
 
-      {/* 3. Main Leaflet Map Container with Canvas Engine (preferCanvas={true}) */}
+      {/* 4. Main Leaflet Map Container with Canvas Engine (preferCanvas={true}) */}
       <MapContainer
-        center={[12.9250, 77.5850]}
+        center={[12.9300, 77.5800]}
         zoom={16}
         scrollWheelZoom
         zoomControl={false}
         preferCanvas={true}
-        className={`h-full w-full ${isDark ? "dark-map-container" : ""}`}
+        className={`h-full w-full relative z-0 ${isDark ? "dark-map-container" : ""}`}
       >
         {/* Relocated Zoom Control to bottom-right to prevent toolbar collision on mobile */}
         <ZoomControl position="bottomright" />
 
         {/* Empty area click listener to clear active parcel selection */}
         <MapEmptyClickHandler onClearSelection={handleClearSelection} />
+
+        {/* OpenStreetMap Live Overpass Viewport Manager */}
+        <OSMViewportManager
+          activeLayers={activeLayers}
+          loadingLayers={loadingLayers}
+          setLoadingLayers={setLoadingLayers}
+          onOSMDataUpdate={handleOSMDataUpdate}
+          setIsOsmLoading={setIsOsmLoading}
+          setOsmLoadingLayers={setOsmLoadingLayers}
+          onZoomChange={handleZoomChange}
+        />
 
         <TileLayer
           key={`${activeBasemap.id}-${isDark ? "dark" : "light"}`}
@@ -630,6 +1284,92 @@ function MapDashboard({
           isDark={isDark}
         />
 
+        {/* Dynamic GeoJSON Layer 1: Land Use & Zoning (Purple #8b5cf6) - only renders when live data loaded */}
+        {(activeLayers?.zoning || activeLayers?.landUseZoning) && osmData.zoning && (
+          <GeoJSON
+            key={`zoning-layer-osm-${osmVersion}`}
+            data={osmData.zoning}
+            style={zoningStyle}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              const t = p.tags || {};
+              const name = t.name || p.name || t.landuse || p.zone || "Zoning Area";
+              layer.bindPopup(createTerminalPopupHtml(feature, "LAND USE & ZONING", "#8b5cf6"), {
+                className: "custom-gis-popup",
+                closeButton: true
+              });
+              layer.bindTooltip(`ZONING: ${name}`, {
+                sticky: true,
+                className: "custom-gis-tooltip"
+              });
+            }}
+          />
+        )}
+
+        {/* Static GeoJSON Layer 2: Encumbrance Flags (Statutory Red #ef4444) */}
+        {(activeLayers?.encumbrance || activeLayers?.encumbranceFlags) && (
+          <GeoJSON
+            key="encumbrance-layer"
+            data={mockEncumbranceData}
+            style={encumbranceStyle}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              layer.bindPopup(createTerminalPopupHtml(feature, "ENCUMBRANCE / DISPUTE", "#ef4444"), {
+                className: "custom-gis-popup",
+                closeButton: true
+              });
+              layer.bindTooltip(`ENCUMBRANCE: ${p.status} [${p.case_no || "CASE"}]`, {
+                sticky: true,
+                className: "custom-gis-tooltip"
+              });
+            }}
+          />
+        )}
+
+        {/* Dynamic GeoJSON Layer 3: Water & Sewage Lines / Stormwater Drains (Cyan #06b6d4) - only renders when live data loaded */}
+        {(activeLayers?.waterLines || activeLayers?.waterSewageLines) && osmData.utilities && (
+          <GeoJSON
+            key={`water-layer-osm-${osmVersion}`}
+            data={osmData.utilities}
+            style={waterStyle}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              const t = p.tags || {};
+              const name = t.name || p.name || t.waterway || p.type || "Stormwater Drain";
+              layer.bindPopup(createTerminalPopupHtml(feature, "MUNICIPAL UTILITY", "#06b6d4"), {
+                className: "custom-gis-popup",
+                closeButton: true
+              });
+              layer.bindTooltip(`DRAINAGE: ${name}`, {
+                sticky: true,
+                className: "custom-gis-tooltip"
+              });
+            }}
+          />
+        )}
+
+        {/* Dynamic GeoJSON Layer 4: Environmental Restrictions Buffer (Emerald #10b981) - only renders when live data loaded */}
+        {(activeLayers?.envRestrictions || activeLayers?.environmentalRestrictions) && osmData.environment && (
+          <GeoJSON
+            key={`env-layer-osm-${osmVersion}`}
+            data={osmData.environment}
+            style={envStyle}
+            onEachFeature={(feature, layer) => {
+              const p = feature.properties || {};
+              const t = p.tags || {};
+              const name = t.name || p.name || t.leisure || t.water || p.type || "Eco Buffer";
+              layer.bindPopup(createTerminalPopupHtml(feature, "ECO RESTRICTION", "#10b981"), {
+                className: "custom-gis-popup",
+                closeButton: true
+              });
+              layer.bindTooltip(`ECO BUFFER: ${name}`, {
+                sticky: true,
+                className: "custom-gis-tooltip"
+              });
+            }}
+          />
+        )}
+
         {/* View controller to manage flyToBounds & resize invalidation */}
         <MapViewController
           selectedUlpIn={selectedUlpIn}
@@ -637,6 +1377,17 @@ function MapDashboard({
           onMapReady={handleMapReady}
         />
       </MapContainer>
+
+      {/* Strict Rule 2: Map Scanning Overlay with Stark SpaceX/Palantir Terminal Aesthetic */}
+      <MapScanningOverlay loadingLayers={loadingLayers} />
+
+      {/* 5. Floating Spatial Data Layers HUD (Stark SpaceX/Palantir Controller) */}
+      <LayerController
+        activeLayers={activeLayers}
+        loadingLayers={loadingLayers}
+        onLayersChange={handleLayersChange}
+        onToggleLayer={handleToggleLayer}
+      />
     </div>
   );
 }

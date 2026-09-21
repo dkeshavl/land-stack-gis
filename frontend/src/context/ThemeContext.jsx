@@ -1,41 +1,36 @@
 import { createContext, useContext, useEffect, useState, useMemo } from "react";
 
-const THEME_STORAGE_KEY = "land-stack-theme";
+const THEME_STORAGE_KEY = "theme";
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    // 1. Check persistent choice in localStorage
+    // 1. Check persistent choice in localStorage (defaulting strictly to 'light')
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      const saved = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem("land-stack-theme");
       if (saved === "light" || saved === "dark") {
         return saved;
       }
-      // 2. Fall back to OS / browser preference
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        return "dark";
-      }
     }
     return "light";
   });
 
-  // Track real-time system changes when user has not pinned a manual choice
-  const [systemTheme, setSystemTheme] = useState(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
-    return "light";
-  });
-
+  // Track storage/theme changes across components and tabs
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemChange = (e) => {
-      setSystemTheme(e.matches ? "dark" : "light");
+    const syncTheme = () => {
+      const saved = localStorage.getItem("theme") || localStorage.getItem("land-stack-theme");
+      if (saved === "light" || saved === "dark") {
+        setTheme(saved);
+      }
     };
 
-    mediaQuery.addEventListener("change", handleSystemChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemChange);
+    window.addEventListener("storage", syncTheme);
+    window.addEventListener("theme-change", syncTheme);
+    return () => {
+      window.removeEventListener("storage", syncTheme);
+      window.removeEventListener("theme-change", syncTheme);
+    };
   }, []);
 
   // Update DOM and localStorage whenever theme changes
@@ -49,7 +44,8 @@ export function ThemeProvider({ children }) {
       root.setAttribute("data-theme", "light");
     }
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.setItem("theme", theme);
+      localStorage.setItem("land-stack-theme", theme);
     } catch (e) {
       console.warn("Could not save theme preference:", e);
     }
@@ -65,10 +61,9 @@ export function ThemeProvider({ children }) {
       setTheme,
       toggleTheme,
       resolvedTheme: theme,
-      isDark: theme === "dark",
-      systemTheme
+      isDark: theme === "dark"
     }),
-    [theme, systemTheme]
+    [theme]
   );
 
   return (

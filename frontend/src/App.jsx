@@ -19,6 +19,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import AdminLogin from "./components/AdminLogin";
 import ServiceRequestModal from "./components/ServiceRequestModal";
 import ThemeToggle from "./components/ThemeToggle";
+import { INITIAL_LAYER_STATE } from "./components/LayerController";
 
 /**
  * Stark Terminal-style 404 Page
@@ -348,7 +349,9 @@ function CitizenView({
   setMapInstance,
   refreshKey,
   refreshCurrentParcel,
-  handleOpenMutationModal
+  handleOpenMutationModal,
+  activeLayers,
+  setActiveLayers
 }) {
   const { isDark } = useTheme();
 
@@ -362,6 +365,8 @@ function CitizenView({
           onMapReady={setMapInstance}
           refreshKey={refreshKey}
           refreshCurrentParcel={refreshCurrentParcel}
+          activeLayers={activeLayers}
+          onLayersChange={setActiveLayers}
         />
 
         {/* DPI Cadastre Badge (Bottom Left) - Palantir Blueprint Glassmorphic */}
@@ -423,6 +428,7 @@ function CitizenView({
       <BottomSheet
         isOpen={Boolean(selectedUlpIn) && isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
+        onApplyMutation={() => handleOpenMutationModal(selectedUlpIn)}
       >
         <ParcelPanel
           selectedUlpIn={selectedUlpIn}
@@ -430,6 +436,7 @@ function CitizenView({
           isExternalLoading={isParcelLoading}
           onApplyMutation={handleOpenMutationModal}
           refreshKey={refreshKey}
+          hideBottomAction={true}
         />
       </BottomSheet>
 
@@ -502,6 +509,7 @@ function AppContent() {
   const [mutationModalUlpin, setMutationModalUlpin] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
+  const [activeLayers, setActiveLayers] = useState(INITIAL_LAYER_STATE);
 
   const [adminUser, setAdminUser] = useState(() => {
     try {
@@ -636,6 +644,8 @@ function AppContent() {
               refreshKey={refreshKey}
               refreshCurrentParcel={refreshCurrentParcel}
               handleOpenMutationModal={handleOpenMutationModal}
+              activeLayers={activeLayers}
+              setActiveLayers={setActiveLayers}
             />
           }
         />

@@ -13,7 +13,6 @@ const mockData = {
       mutationStatus: "Rejected",
       applicationId: "MUT-218407",
       transferReason: "Sale Deed",
-      appliedAt: "2026-09-19T09:38:52.000Z",
       rejectedAt: new Date().toISOString()
     },
     zoning: { zoneType: "Residential", landUse: "Residential Primary" },

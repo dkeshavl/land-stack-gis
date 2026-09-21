@@ -50,7 +50,8 @@ export default function ParcelPanel({
   parcelData = null,
   isExternalLoading = false,
   onApplyMutation,
-  refreshKey = 0
+  refreshKey = 0,
+  hideBottomAction = false
 }) {
   const [parcel, setParcel] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -317,7 +318,10 @@ export default function ParcelPanel({
 
       {/* Loading Skeleton */}
       {loading && (
-        <div className="mt-4 flex-1 space-y-3 animate-pulse overflow-y-auto pr-0.5">
+        <div 
+          className="mt-4 flex-1 space-y-3 animate-pulse overflow-y-auto overscroll-contain pr-0.5"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           <div className="rounded-none border border-gray-200 bg-gray-50 p-4 space-y-3 dark:border-neutral-800 dark:bg-[#080808]">
             <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-neutral-800">
               <div className="h-3.5 w-32 bg-gray-200 dark:bg-neutral-800 rounded-none" />
@@ -375,7 +379,10 @@ export default function ParcelPanel({
 
       {/* Tab Panels Content */}
       {displayParcel && !loading && (
-        <div className="mt-4 flex-1 space-y-4 overflow-y-auto pr-0.5">
+        <div 
+          className="mt-4 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-0.5"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {/* Active Mutation Notification Alert - strictly render only when status is PENDING and has active pendingNewOwner */}
           {isPending && Boolean(displayParcel?.ownership?.pendingNewOwner) && (
             <div className="rounded-none border border-amber-500/40 bg-amber-500/10 p-3.5">
@@ -540,7 +547,7 @@ export default function ParcelPanel({
       )}
 
       {/* Action Footer: Apply for Title Mutation - SpaceX Stark Style */}
-      {displayParcel && !loading && (
+      {displayParcel && !loading && !hideBottomAction && (
         <div className="mt-3 border-t border-gray-200 dark:border-neutral-800 pt-3">
           <button
             type="button"

@@ -26,6 +26,7 @@ export default function ServiceRequestModal({
   const [applicantCapacity, setApplicantCapacity] = useState("Individual Buyer / Transferee");
   const [transferReason, setTransferReason] = useState("Sale Deed");
   const [applicantNotes, setApplicantNotes] = useState("");
+  const [sroError, setSroError] = useState(false);
   const [mockFileName, setMockFileName] = useState("REGISTERED_SALE_DEED_2026.PDF");
   const [declarationChecked, setDeclarationChecked] = useState(true);
 
@@ -50,6 +51,7 @@ export default function ServiceRequestModal({
     setNewOwnerName("");
     setApplicantPhone("");
     setApplicantNotes("");
+    setSroError(false);
     setErrorMessage("");
     setSubmissionSuccess(null);
     setTouched({});
@@ -108,25 +110,31 @@ export default function ServiceRequestModal({
   // Wizard Navigation
   const canProceedFromStep1 = validations.newOwnerName && validations.applicantPhone;
   const canProceedFromStep2 = validations.ulpin;
-  const canProceedFromStep3 = Boolean(mockFileName);
+  const canProceedFromStep3 = Boolean(applicantNotes.trim()) && Boolean(mockFileName);
 
   const handleNext = () => {
     setErrorMessage("");
     if (currentStep === 1) {
       setTouched((prev) => ({ ...prev, newOwnerName: true, applicantPhone: true }));
       if (!canProceedFromStep1) {
-        setErrorMessage("VALID APPLICANT LEGAL NAME AND MOBILE TELEMETRY REQUIRED.");
+        setErrorMessage("Valid applicant legal name and mobile telemetry required.");
         return;
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
       setTouched((prev) => ({ ...prev, ulpin: true }));
       if (!canProceedFromStep2) {
-        setErrorMessage("VALID 14-CHARACTER CADASTRAL ULPIN IDENTIFIER REQUIRED.");
+        setErrorMessage("Valid 14-character cadastral ULPIN identifier required.");
         return;
       }
       setCurrentStep(3);
     } else if (currentStep === 3) {
+      if (!applicantNotes.trim()) {
+        setSroError(true);
+        setErrorMessage("Sub-Registrar Office (SRO) deed / book reference required.");
+        return;
+      }
+      setSroError(false);
       setCurrentStep(4);
     }
   };
@@ -234,13 +242,6 @@ export default function ServiceRequestModal({
 
   if (!isOpen) return null;
 
-  const stepLabels = [
-    { num: 1, code: "01", title: "APPLICANT" },
-    { num: 2, code: "02", title: "PARCEL" },
-    { num: 3, code: "03", title: "DOCUMENTS" },
-    { num: 4, code: "04", title: "REVIEW" }
-  ];
-
   return (
     <div className="fixed inset-0 z-[2100] flex items-center justify-center p-2 sm:p-4 md:p-6">
       {/* High-Contrast Backdrop */}
@@ -267,11 +268,11 @@ export default function ServiceRequestModal({
               </svg>
             </div>
             <div>
-              <h3 id="mutation-modal-title" className="text-xl font-extrabold tracking-[0.1em] uppercase text-gray-900 dark:text-white">
+              <h3 id="mutation-modal-title" className="text-xl font-extrabold tracking-[0.05em] text-gray-900 dark:text-white">
                 Form 12-A: Title Mutation
               </h3>
-              <p className="text-xs font-mono tracking-widest text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
-                MINISTRY OF RURAL DEVELOPMENT • CADASTRAL ROR SANCTION
+              <p className="text-xs font-mono tracking-widest text-gray-500 dark:text-neutral-500 mt-0.5">
+                Ministry of Rural Development • Cadastral RoR Sanction
               </p>
             </div>
           </div>
@@ -289,29 +290,28 @@ export default function ServiceRequestModal({
           </button>
         </div>
 
-        {/* The Stepper (Sequence Indicator: Terminal Aesthetic) */}
+        {/* Step Navigation Tabs (Scrollable on mobile) */}
         {!submissionSuccess && (
-          <div className="border-b border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-[#070707] px-6 pt-3">
-            <div className="grid grid-cols-4 gap-2">
-              {stepLabels.map((s) => {
-                const isActive = currentStep === s.num;
-                return (
-                  <div
-                    key={s.num}
-                    className={`text-center transition-colors duration-100 ${
-                      isActive
-                        ? "border-b-2 border-black dark:border-white text-black dark:text-white pb-2 font-mono text-xs tracking-widest uppercase font-bold"
-                        : "border-b-2 border-transparent text-gray-400 dark:text-neutral-600 pb-2 font-mono text-xs tracking-widest uppercase"
-                    }`}
-                    aria-current={isActive ? "step" : undefined}
-                  >
-                    <span className="inline-block truncate">
-                      [{s.code}] {s.title}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="flex items-center border-b border-gray-200 dark:border-neutral-800 overflow-x-auto scrollbar-none px-4 md:px-8 py-3 bg-gray-50/50 dark:bg-[#070707] gap-2 shrink-0">
+            {[
+              { id: 1, label: "01 Applicant" },
+              { id: 2, label: "02 Parcel" },
+              { id: 3, label: "03 Documents" },
+              { id: 4, label: "04 Review" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCurrentStep(tab.id)}
+                className={`px-4 py-2 text-xs font-mono font-bold tracking-wider uppercase whitespace-nowrap transition-all rounded-md cursor-pointer ${
+                  currentStep === tab.id
+                    ? "bg-black text-white shadow-sm dark:bg-white dark:text-black"
+                    : "text-gray-500 hover:text-black hover:bg-gray-200/50 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800/50"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         )}
 
@@ -321,7 +321,7 @@ export default function ServiceRequestModal({
           {errorMessage && (
             <div
               role="alert"
-              className="mb-5 flex items-center gap-3 rounded-none border border-red-500 bg-red-50/70 p-3.5 text-xs font-mono uppercase tracking-wider text-red-700 dark:border-red-600 dark:bg-red-950/30 dark:text-red-400"
+              className="mb-5 flex items-center gap-3 rounded-none border border-red-500 bg-red-50/70 p-3.5 text-xs font-mono tracking-wider text-red-700 dark:border-red-600 dark:bg-red-950/30 dark:text-red-400"
             >
               <span className="font-bold text-red-600 dark:text-red-400">[ERR]</span>
               <span className="leading-snug">{errorMessage}</span>
@@ -412,23 +412,23 @@ export default function ServiceRequestModal({
             /* ============================================================ */
             /* MULTI-STEP WIZARD BODY */
             /* ============================================================ */
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* STEP 1: APPLICANT DETAILS */}
               {currentStep === 1 && (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-6">
                   <div>
                     <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
                       SEQUENCE 01 // TRANSFEREE & APPLICANT TELEMETRY
                     </h4>
-                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 font-mono tracking-wide mb-6 leading-relaxed mt-1">
                       Enter the statutory particulars of the acquiring citizen or corporate entity.
                     </p>
                   </div>
 
                   {/* Transferee Name */}
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
-                      Transferee / New Owner Legal Name <span className="text-red-500">*</span>
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
+                      Transferee / New Owner Legal Name <span className="text-red-500 ml-1">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -436,13 +436,13 @@ export default function ServiceRequestModal({
                         value={newOwnerName}
                         onChange={(e) => setNewOwnerName(e.target.value)}
                         onBlur={() => setTouched((p) => ({ ...p, newOwnerName: true }))}
-                        placeholder="E.G. SMT. SUNITA RAO"
+                        placeholder="e.g. Smt. Sunita Rao"
                         required
                         aria-invalid={touched.newOwnerName && !validations.newOwnerName}
-                        className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 transition-colors duration-100 ${
+                        className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border font-mono text-sm px-4 py-3 placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:ring-1 transition-all duration-200 text-gray-900 dark:text-white ${
                           touched.newOwnerName && !validations.newOwnerName
-                            ? "border-red-500 focus:border-red-500"
-                            : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white"
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white"
                         }`}
                       />
                       {touched.newOwnerName && (
@@ -456,17 +456,17 @@ export default function ServiceRequestModal({
                       )}
                     </div>
                     {touched.newOwnerName && !validations.newOwnerName && (
-                      <p className="mt-1.5 text-[10px] font-mono tracking-wider uppercase text-red-600 dark:text-red-400">
-                        LEGAL NAME MUST CONTAIN A MINIMUM OF 3 CHARACTERS.
+                      <p className="mt-1.5 text-[10px] font-mono tracking-wider text-red-600 dark:text-red-400">
+                        Legal name must contain a minimum of 3 characters.
                       </p>
                     )}
                   </div>
 
                   {/* Mobile Number & Capacity */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
-                        Applicant Mobile Number <span className="text-red-500">*</span>
+                      <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
+                        Applicant Mobile Number <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -476,10 +476,10 @@ export default function ServiceRequestModal({
                           onBlur={() => setTouched((p) => ({ ...p, applicantPhone: true }))}
                           placeholder="+91 98765 43210"
                           required
-                          className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 transition-colors duration-100 ${
+                          className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border font-mono text-sm px-4 py-3 placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:ring-1 transition-all duration-200 text-gray-900 dark:text-white ${
                             touched.applicantPhone && !validations.applicantPhone
-                              ? "border-red-500 focus:border-red-500"
-                              : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white"
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white"
                           }`}
                         />
                         {touched.applicantPhone && (
@@ -492,25 +492,25 @@ export default function ServiceRequestModal({
                           </div>
                         )}
                       </div>
-                      <p className="mt-1 text-[10px] font-mono tracking-wider uppercase text-gray-400 dark:text-neutral-500">
-                        CELLULAR DISPATCH FOR LEDGER AUDIT LOGS
+                      <p className="mt-1 text-[10px] font-mono tracking-wider text-gray-400 dark:text-neutral-500">
+                        Cellular dispatch for ledger audit logs
                       </p>
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
                         Applicant Capacity / Role
                       </label>
                       <select
                         value={applicantCapacity}
                         onChange={(e) => setApplicantCapacity(e.target.value)}
-                        className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100 cursor-pointer"
+                        className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white font-mono text-sm px-4 py-3 focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all duration-200 cursor-pointer"
                       >
-                        <option value="Individual Buyer / Transferee">INDIVIDUAL BUYER / TRANSFEREE</option>
-                        <option value="Legal Heir / Next of Kin">LEGAL HEIR / NEXT OF KIN</option>
-                        <option value="Gift Donee">GIFT DONEE</option>
-                        <option value="Power of Attorney Holder">POWER OF ATTORNEY HOLDER</option>
-                        <option value="Authorized Corporate Officer">AUTHORIZED CORPORATE OFFICER</option>
+                        <option value="Individual Buyer / Transferee">Individual Buyer / Transferee</option>
+                        <option value="Legal Heir / Next of Kin">Legal Heir / Next of Kin</option>
+                        <option value="Gift Donee">Gift Donee</option>
+                        <option value="Power of Attorney Holder">Power of Attorney Holder</option>
+                        <option value="Authorized Corporate Officer">Authorized Corporate Officer</option>
                       </select>
                     </div>
                   </div>
@@ -519,21 +519,21 @@ export default function ServiceRequestModal({
 
               {/* STEP 2: PARCEL VERIFICATION */}
               {currentStep === 2 && (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-6">
                   <div>
                     <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
                       SEQUENCE 02 // CADASTRAL PARCEL & TRANSFER NATURE
                     </h4>
-                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 font-mono tracking-wide mb-6 leading-relaxed mt-1">
                       Link application to verified 14-character ULPIN and specify statutory conveyance type.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     {/* ULPIN Input */}
                     <div>
-                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
-                        14-digit ULPIN <span className="text-red-500">*</span>
+                      <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
+                        14-digit ULPIN <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -544,9 +544,9 @@ export default function ServiceRequestModal({
                             setTouched((p) => ({ ...p, ulpin: true }));
                             lookupCurrentOwner(ulpin.trim().toUpperCase());
                           }}
-                          placeholder="E.G. 29572001218249"
+                          placeholder="e.g. 29572001218249"
                           required
-                          className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm uppercase focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100"
+                          className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white font-mono text-sm px-4 py-3 placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all duration-200 uppercase"
                         />
                         {validations.ulpin && (
                           <span className="pointer-events-none absolute right-4 top-3.5 font-mono text-xs font-bold text-gray-900 dark:text-white">
@@ -558,20 +558,25 @@ export default function ServiceRequestModal({
 
                     {/* Current Owner Readout */}
                     <div>
-                      <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                      <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
                         Current Registered Owner
                       </label>
-                      <div className="flex h-[46px] items-center rounded-none border border-gray-200 dark:border-neutral-800/80 bg-gray-100 dark:bg-[#0e0e0e] px-4 font-mono text-sm text-gray-900 dark:text-neutral-200">
-                        {fetchingCurrent ? (
-                          <span className="text-gray-400 dark:text-neutral-500 animate-pulse tracking-widest text-xs">
-                            [SYNCING ROR LEDGER...]
+                      <div className="relative">
+                        <input
+                          type="text"
+                          readOnly
+                          disabled
+                          value={
+                            fetchingCurrent
+                              ? "[Syncing RoR ledger...]"
+                              : currentOwner || "[Auto-fetched from PostGIS]"
+                          }
+                          className="w-full rounded-none bg-gray-100/70 dark:bg-neutral-900/70 border border-dashed border-gray-300 dark:border-neutral-800 text-gray-500 dark:text-neutral-400 font-mono text-sm px-4 py-3 cursor-not-allowed select-none"
+                        />
+                        {fetchingCurrent && (
+                          <span className="pointer-events-none absolute right-4 top-3.5 font-mono text-xs text-gray-400 dark:text-neutral-500 animate-pulse tracking-widest">
+                            SYNCING...
                           </span>
-                        ) : (
-                          currentOwner || (
-                            <span className="text-gray-400 dark:text-neutral-500 italic text-xs">
-                              [AUTO-FETCHED FROM POSTGIS]
-                            </span>
-                          )
                         )}
                       </div>
                     </div>
@@ -579,19 +584,19 @@ export default function ServiceRequestModal({
 
                   {/* Transfer Nature Selection */}
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
-                      Nature of Title Transfer <span className="text-red-500">*</span>
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
+                      Nature of Title Transfer <span className="text-red-500 ml-1">*</span>
                     </label>
                     <select
                       value={transferReason}
                       onChange={(e) => setTransferReason(e.target.value)}
-                      className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100 cursor-pointer"
+                      className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white font-mono text-sm px-4 py-3 focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all duration-200 cursor-pointer"
                     >
-                      <option value="Sale Deed">SALE DEED (SUB-REGISTRAR CERTIFIED)</option>
-                      <option value="Inheritance / Succession">INHERITANCE / LEGAL HEIR SUCCESSION</option>
-                      <option value="Gift Deed">GIFT DEED / FAMILY SETTLEMENT</option>
-                      <option value="Family Partition">FAMILY PARTITION / COURT DECREE</option>
-                      <option value="Government Allotment">GOVERNMENT ALLOTMENT / GRANT</option>
+                      <option value="Sale Deed">Sale Deed (Sub-Registrar Certified)</option>
+                      <option value="Inheritance / Succession">Inheritance / Legal Heir Succession</option>
+                      <option value="Gift Deed">Gift Deed / Family Settlement</option>
+                      <option value="Family Partition">Family Partition / Court Decree</option>
+                      <option value="Government Allotment">Government Allotment / Grant</option>
                     </select>
                   </div>
                 </div>
@@ -599,33 +604,65 @@ export default function ServiceRequestModal({
 
               {/* STEP 3: SUPPORTING DOCUMENTS (Secure Ingestion Zone) */}
               {currentStep === 3 && (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-6">
                   <div>
                     <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
                       SEQUENCE 03 // EVIDENCE & DEED REGISTRATION
                     </h4>
-                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 font-mono tracking-wide mb-6 leading-relaxed mt-1">
                       Upload certified electronic sale deed or encumbrance title certificate.
                     </p>
                   </div>
 
                   {/* SRO Deed Reference */}
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
-                      Sub-Registrar Office (SRO) Deed / Book Reference
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
+                      Sub-Registrar Office (SRO) Deed / Book Reference <span className="text-red-500 ml-1">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={applicantNotes}
-                      onChange={(e) => setApplicantNotes(e.target.value)}
-                      placeholder="E.G. SRO-BLR-NORTH-2026/VOL-412/PAGE-89"
-                      className="w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border border-gray-300 dark:border-neutral-800 text-gray-900 dark:text-white px-4 py-3 font-mono text-sm uppercase focus:ring-0 focus:border-black dark:focus:border-white transition-colors duration-100"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={applicantNotes}
+                        onChange={(e) => {
+                          setApplicantNotes(e.target.value);
+                          if (sroError && e.target.value.trim()) {
+                            setSroError(false);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!applicantNotes.trim()) {
+                            setSroError(true);
+                          }
+                        }}
+                        placeholder="e.g. SRO-BLR-NORTH-2026/VOL-412/PAGE-89"
+                        required
+                        aria-invalid={sroError}
+                        className={`w-full rounded-none bg-gray-50 dark:bg-[#0a0a0a] border font-mono text-sm px-4 py-3 placeholder:text-gray-400 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:bg-white dark:focus:bg-[#111111] focus:ring-1 transition-all duration-200 text-gray-900 dark:text-white ${
+                          sroError
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            : "border-gray-300 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white"
+                        }`}
+                      />
+                      {sroError ? (
+                        <div className="pointer-events-none absolute right-4 top-3.5 flex items-center">
+                          <span className="font-mono text-xs font-bold text-red-600 dark:text-red-400">✕</span>
+                        </div>
+                      ) : applicantNotes.trim().length > 0 ? (
+                        <div className="pointer-events-none absolute right-4 top-3.5 flex items-center">
+                          <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">✓</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    {sroError && (
+                      <p className="mt-1.5 text-[10px] font-mono tracking-wider text-red-600 dark:text-red-400">
+                        Sub-Registrar deed reference is mandatory for title mutation.
+                      </p>
+                    )}
                   </div>
 
                   {/* Secure Data Ingestion Zone */}
                   <div>
-                    <label className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-500 dark:text-neutral-400 mb-2 block">
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-800 dark:text-neutral-300 uppercase mb-2">
                       Ingestion Document Attachment (PDF / JPG / PNG)
                     </label>
                     <div className="border-2 border-dashed border-gray-300 dark:border-neutral-700 bg-gray-50 dark:bg-[#0a0a0a] hover:border-black dark:hover:border-white transition-colors duration-100 rounded-none p-5">
@@ -640,8 +677,8 @@ export default function ServiceRequestModal({
                             <p className="font-mono text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
                               {mockFileName}
                             </p>
-                            <p className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 mt-0.5">
-                              CERTIFIED ELECTRONIC RECORD • SHA-256 VERIFIED • 2.4 MB
+                            <p className="text-[10px] font-mono tracking-widest text-gray-500 dark:text-neutral-500 mt-0.5">
+                              Certified Electronic Record • SHA-256 Verified • 2.4 MB
                             </p>
                           </div>
                         </div>
@@ -663,12 +700,12 @@ export default function ServiceRequestModal({
 
               {/* STEP 4: REVIEW & SANCTION (Terminal Readout Grid) */}
               {currentStep === 4 && (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-6">
                   <div>
                     <h4 className="text-xs font-mono font-bold tracking-[0.15em] uppercase text-gray-900 dark:text-white">
                       SEQUENCE 04 // AUDIT RECAP & SANCTION REVIEW
                     </h4>
-                    <p className="text-[11px] font-mono tracking-wider text-gray-500 dark:text-neutral-500 uppercase mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 font-mono tracking-wide mb-6 leading-relaxed mt-1">
                       Verify application particulars before committing to the immutable cadastral ledger.
                     </p>
                   </div>
@@ -678,7 +715,7 @@ export default function ServiceRequestModal({
                     <div className="grid grid-cols-2 gap-4 pb-3">
                       <div>
                         <span className="text-[10px] font-mono tracking-widest uppercase text-gray-500 dark:text-neutral-500 block mb-1">
-                          PARCEL ULPIN
+                           PARCEL ULPIN
                         </span>
                         <p className="font-mono text-sm font-bold text-gray-900 dark:text-white tracking-wider">
                           {ulpin}
@@ -689,7 +726,7 @@ export default function ServiceRequestModal({
                           RECORDED OWNER
                         </span>
                         <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                          {currentOwner || "[RECORD IN POSTGIS CACHE]"}
+                          {currentOwner || "[Record in PostGIS Cache]"}
                         </p>
                       </div>
                     </div>
@@ -744,9 +781,9 @@ export default function ServiceRequestModal({
                     />
                     <label
                       htmlFor="mutation-declaration"
-                      className="text-[11px] font-mono leading-relaxed text-gray-600 dark:text-neutral-400 cursor-pointer select-none uppercase tracking-wide"
+                      className="text-[11px] font-mono leading-relaxed text-gray-600 dark:text-neutral-400 cursor-pointer select-none tracking-wide"
                     >
-                      I HEREBY SOLEMNLY AFFIRM THAT STATUTORY SRO STAMP DUTY AND CADASTRAL REGISTRATION FEES HAVE BEEN REMITTED, AND SUBMITTED PARTICULARS ARE AUTHENTIC UNDER THE STATE LAND REVENUE CODE.
+                      I hereby solemnly affirm that statutory SRO stamp duty and cadastral registration fees have been remitted, and submitted particulars are authentic under the State Land Revenue Code.
                     </label>
                   </div>
                 </div>

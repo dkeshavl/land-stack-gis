@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import AuditLogsView from "./AuditLogsView";
+import AIAnalyticsModule from "./AIAnalyticsModule";
 
 /**
  * AdminDashboard Component for Land Stack GIS
@@ -20,6 +21,7 @@ function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [actionLoading, setActionLoading] = useState({});
   const [toastMessage, setToastMessage] = useState(null);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
 
   // Helper to parse both GeoJSON FeatureCollection and API data formats
   const parseParcelData = (result) => {
@@ -327,6 +329,20 @@ function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
 
             {/* Desktop Actions (Refresh, Officer Profile, Logout) */}
             <div className="hidden md:flex items-center gap-3 shrink-0">
+              {/* AI Satellite Scan Button in Header */}
+              <button
+                type="button"
+                onClick={() => setIsScanModalOpen(true)}
+                className="border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-mono text-xs px-4 py-2 uppercase tracking-widest transition-colors rounded-none cursor-pointer inline-flex items-center gap-2 shrink-0 whitespace-nowrap"
+                title="Simulate AI/ML Satellite Change Detection"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>RUN AI SATELLITE SCAN</span>
+              </button>
+
               {/* Refresh Button */}
               <button
                 onClick={refreshParcels}
@@ -581,20 +597,34 @@ function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
                   </div>
                 </div>
 
-                {/* Instant Search Filter */}
-                <div className="relative w-full sm:w-80 min-w-0">
-                  <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 dark:text-neutral-500">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                    </svg>
+                {/* Instant Search Filter and AI Satellite Scan Button */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-80 min-w-0">
+                    <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 dark:text-neutral-500">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="SEARCH ULPIN, OWNER, KHASRA..."
+                      className="w-full rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] py-2 pl-9 pr-3 text-xs font-mono font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-600 shadow-none transition focus:border-gray-900 dark:focus:border-white focus:outline-none"
+                    />
                   </div>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="SEARCH ULPIN, OWNER, KHASRA..."
-                    className="w-full rounded-none border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-[#0a0a0a] py-2 pl-9 pr-3 text-xs font-mono font-medium text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-neutral-600 shadow-none transition focus:border-gray-900 dark:focus:border-white focus:outline-none"
-                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setIsScanModalOpen(true)}
+                    className="border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-mono text-xs px-4 py-2 uppercase tracking-widest transition-colors rounded-none cursor-pointer inline-flex items-center justify-center gap-2 shrink-0 whitespace-nowrap"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-none bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-none h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>RUN AI SATELLITE SCAN</span>
+                  </button>
                 </div>
               </div>
 
@@ -800,6 +830,13 @@ function AdminDashboard({ onInspectParcel, onLogout, onMutationUpdated }) {
           )}
         </div>
       </main>
+
+      {/* AI/ML Satellite Change Detection Terminal Modal */}
+      <AIAnalyticsModule
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onInspectParcel={onInspectParcel}
+      />
     </div>
   );
 }

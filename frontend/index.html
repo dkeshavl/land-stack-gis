@@ -24,9 +24,8 @@
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem("land-stack-theme");
-          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          if (saved === "dark" || (!saved && prefersDark)) {
+          var saved = localStorage.getItem("theme") || localStorage.getItem("land-stack-theme");
+          if (saved === "dark") {
             document.documentElement.classList.add("dark");
             document.documentElement.setAttribute("data-theme", "dark");
           } else {
