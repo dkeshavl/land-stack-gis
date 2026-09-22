@@ -348,9 +348,14 @@ export default function LandingPageDark({ onNavigate, toggleTheme }) {
             onClick={() => {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="text-xl font-bold tracking-[0.2em] uppercase text-white hover:opacity-80 transition-opacity cursor-pointer"
+            className="text-xl font-bold tracking-[0.2em] uppercase text-white hover:opacity-80 transition-opacity cursor-pointer flex items-center gap-3"
           >
-            LAND STACK
+            <img
+              src="/logo.jpeg"
+              alt="Land Stack Logo"
+              className="h-8 w-8 object-contain rounded-md border border-white/20 bg-white shadow-sm"
+            />
+            <span>LAND STACK</span>
           </button>
         </div>
 

@@ -104,9 +104,11 @@ function DashboardLayout({
             className="flex shrink-0 items-center gap-2 sm:gap-3 text-left focus:outline-none group cursor-pointer"
             title="Return to Landing Page Overview"
           >
-            <div className="flex h-8 w-8 items-center justify-center border border-black dark:border-white text-black dark:text-white font-mono font-bold text-xs tracking-wider rounded-none">
-              LS
-            </div>
+            <img
+              src="/logo.jpeg"
+              alt="Land Stack Logo"
+              className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-md border border-black/10 dark:border-white/20 bg-white shadow-sm"
+            />
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <h1 className="text-xs sm:text-base font-bold tracking-[0.15em] sm:tracking-[0.2em] uppercase text-gray-900 dark:text-white group-hover:opacity-75 transition-opacity font-sans whitespace-nowrap">
